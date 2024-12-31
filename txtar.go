@@ -55,9 +55,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"os"
 	"slices"
 	"strings"
 )
+
+// TODO(@FollowTheProcess): Iterator over the file names and contents
+// TODO(@FollowTheProcess): An Equal method for comparison in tests
+// TODO(@FollowTheProcess): A method for writing to a file
 
 var (
 	newlineMarker = []byte("\n-- ")
@@ -126,6 +131,11 @@ func (a Archive) Read(name string) ([]byte, error) {
 func (a *Archive) Delete(name string) {
 	name = strings.TrimSpace(name)
 	delete(a.files, name)
+}
+
+// Size returns the number of files stored in the archive.
+func (a Archive) Size() int {
+	return len(a.files)
 }
 
 // String implements the [fmt.Stringer] interface for an [Archive], allowing
@@ -219,7 +229,21 @@ func Parse(data []byte) (*Archive, error) {
 	return archive, nil
 }
 
-// Below is verbatim the parser from the original package
+// ParseFile parses an [Archive] from the named file.
+//
+// Unlike the original txtar package, Parse can (and will) return an error in
+// the presence of a malformed document.
+func ParseFile(file string) (*Archive, error) {
+	contents, err := os.ReadFile(file)
+	if err != nil {
+		return nil, fmt.Errorf("ParseFile: %w", err)
+	}
+
+	return Parse(contents)
+}
+
+// Below is verbatim the parser from the original package, the only exception being we don't need fixNL
+// because we are stricter about how we store comment and file contents
 
 // findFileMarker finds the next file marker in data,
 // extracts the file name, and returns the data before the marker,
@@ -233,7 +257,7 @@ func findFileMarker(data []byte) (before []byte, name string, after []byte) {
 		}
 		j := bytes.Index(data[i:], newlineMarker)
 		if j < 0 {
-			return fixNL(data), "", nil
+			return data, "", nil
 		}
 		i += j + 1 // positioned at start of new possible marker
 	}
@@ -253,16 +277,4 @@ func isMarker(data []byte) (name string, after []byte) {
 		return "", nil
 	}
 	return strings.TrimSpace(string(data[len(marker) : len(data)-len(markerEnd)])), after
-}
-
-// If data is empty or ends in \n, fixNL returns data.
-// Otherwise fixNL returns a new slice consisting of data with a final \n added.
-func fixNL(data []byte) []byte {
-	if len(data) == 0 || data[len(data)-1] == '\n' {
-		return data
-	}
-	d := make([]byte, len(data)+1)
-	copy(d, data)
-	d[len(data)] = '\n'
-	return d
 }

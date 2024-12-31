@@ -1,12 +1,15 @@
 package txtar_test
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/FollowTheProcess/test"
 	"github.com/FollowTheProcess/txtar"
+	gotxtar "golang.org/x/tools/txtar"
 )
 
 func TestArchiveComment(t *testing.T) {
@@ -425,4 +428,108 @@ func TestParseInvalid(t *testing.T) {
 			test.Equal(t, archive, nil) // Archive was not nil
 		})
 	}
+}
+
+func TestParseFile(t *testing.T) {
+	tests := []struct {
+		name    string // Name of the test case
+		file    string // The file to parse
+		wantErr bool   // Whether ParseFile should return an error
+	}{
+		{
+			name:    "missing",
+			file:    "missing.txt",
+			wantErr: true,
+		},
+		{
+			name:    "exists",
+			file:    filepath.Join("testdata", "TestParse", "valid", "multiple_files.txtar"),
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := txtar.ParseFile(tt.file)
+			test.WantErr(t, err, tt.wantErr)
+		})
+	}
+}
+
+func TestParseStringRoundTrip(t *testing.T) {
+	pattern := filepath.Join("testdata", "TestParse", "valid", "*.txtar")
+	files, err := filepath.Glob(pattern)
+	test.Ok(t, err) // Could not glob the valid directory
+
+	for _, file := range files {
+		t.Run(filepath.Base(file), func(t *testing.T) {
+			before, err := txtar.ParseFile(file)
+			test.Ok(t, err) // Could not parse file
+
+			// Stringify it
+			stringified := before.String()
+
+			// Reparse it, should be no errors and result in the exact same archive
+			after, err := txtar.Parse([]byte(stringified))
+			test.Ok(t, err) // Could not reparse stringified file
+
+			test.Equal(t, before.Comment(), after.Comment()) // Comment mismatch before vs after
+			test.Equal(
+				t,
+				before.Size(),
+				after.Size(),
+			) // Number of files mismatch before vs after
+			test.Equal(t, before.String(), after.String()) // String() mismatch before vs after
+		})
+	}
+}
+
+func TestCompat(t *testing.T) {
+	pattern := filepath.Join("testdata", "TestCompat", "*.txtar")
+	files, err := filepath.Glob(pattern)
+	test.Ok(t, err) // Could not glob the TestCompat directory
+
+	for _, file := range files {
+		t.Run(filepath.Base(file), func(t *testing.T) {
+			contents, err := os.ReadFile(file)
+			test.Ok(t, err)
+			contents = clean(contents)
+
+			// Note: we're not testing we both error in the same conditions
+			// because we are intentionally being stricter
+			goArchive := gotxtar.Parse(contents)
+
+			ourArchive, err := txtar.Parse(contents)
+			test.Ok(t, err) // our txtar could not parse file
+
+			test.Equal( // Comment mismatch between x/tools/txtar and this package
+				t,
+				cleanString(goArchive.Comment),
+				strings.TrimSpace(ourArchive.Comment()),
+			)
+
+			test.Equal(t, len(goArchive.Files), ourArchive.Size()) // Mismatch in number of files
+
+			for _, file := range goArchive.Files {
+				test.True(t, ourArchive.Has(file.Name)) // This package archive missing file
+				ourData, err := ourArchive.Read(file.Name)
+				test.Ok(t, err) // Could not read data
+
+				test.Equal(t, cleanString(ourData), cleanString(file.Data)) // File data mismatch
+			}
+		})
+	}
+}
+
+// clean de-windows's everything and trims all leading and trailing whitespace
+// returning a byte slice.
+func clean(data []byte) []byte {
+	data = bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n"))
+	return bytes.TrimSpace(data)
+}
+
+// cleanString de-windows's everything and trims all leading and trailing whitespace
+// returning the string for comparison.
+func cleanString(data []byte) string {
+	return string(clean(data))
 }
