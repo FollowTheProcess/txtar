@@ -491,19 +491,22 @@ func TestCompat(t *testing.T) {
 
 	for _, file := range files {
 		t.Run(filepath.Base(file), func(t *testing.T) {
+			contents, err := os.ReadFile(file)
+			test.Ok(t, err)
+			contents = clean(contents)
+
 			// Note: we're not testing we both error in the same conditions
 			// because we are intentionally being stricter
-			goArchive, err := gotxtar.ParseFile(file)
-			test.Ok(t, err) // x/tools/txtar could not parse file
+			goArchive := gotxtar.Parse(contents)
 
-			ourArchive, err := txtar.ParseFile(file)
+			ourArchive, err := txtar.Parse(contents)
 			test.Ok(t, err) // our txtar could not parse file
 
-			test.Equal(
+			test.Equal( // Comment mismatch between x/tools/txtar and this package
 				t,
-				clean(goArchive.Comment),
+				cleanString(goArchive.Comment),
 				strings.TrimSpace(ourArchive.Comment()),
-			) // Comment mismatch between x/tools/txtar and this package
+			)
 
 			test.Equal(t, len(goArchive.Files), ourArchive.Size()) // Mismatch in number of files
 
@@ -512,15 +515,21 @@ func TestCompat(t *testing.T) {
 				ourData, err := ourArchive.Read(file.Name)
 				test.Ok(t, err) // Could not read data
 
-				test.Equal(t, clean(ourData), clean(file.Data)) // File data mismatch
+				test.Equal(t, cleanString(ourData), cleanString(file.Data)) // File data mismatch
 			}
 		})
 	}
 }
 
 // clean de-windows's everything and trims all leading and trailing whitespace
-// returning the string for comparison.
-func clean(data []byte) string {
+// returning a byte slice.
+func clean(data []byte) []byte {
 	data = bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n"))
-	return string(bytes.TrimSpace(data))
+	return bytes.TrimSpace(data)
+}
+
+// cleanString de-windows's everything and trims all leading and trailing whitespace
+// returning the string for comparison.
+func cleanString(data []byte) string {
+	return string(clean(data))
 }
