@@ -199,6 +199,9 @@ func Parse(data []byte) (*Archive, error) {
 		return nil, errors.New("Parse: archive contains no files")
 	}
 
+	// Stupid windows
+	data = bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n"))
+
 	archive := &Archive{
 		files: make(map[string][]byte),
 	}
