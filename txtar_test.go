@@ -3,10 +3,12 @@ package txtar_test
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/FollowTheProcess/test"
 	"github.com/FollowTheProcess/txtar"
+	gotxtar "golang.org/x/tools/txtar"
 )
 
 func TestArchiveComment(t *testing.T) {
@@ -423,6 +425,72 @@ func TestParseInvalid(t *testing.T) {
 			archive, err := txtar.Parse(contents)
 			test.Err(t, err)            // Parse of invalid file did not return an error
 			test.Equal(t, archive, nil) // Archive was not nil
+		})
+	}
+}
+
+func TestParseStringRoundTrip(t *testing.T) {
+	pattern := filepath.Join("testdata", "TestParse", "valid", "*.txtar")
+	files, err := filepath.Glob(pattern)
+	test.Ok(t, err) // Could not glob the valid directory
+
+	for _, file := range files {
+		t.Run(filepath.Base(file), func(t *testing.T) {
+			before, err := txtar.ParseFile(file)
+			test.Ok(t, err) // Could not parse file
+
+			// Stringify it
+			stringified := before.String()
+
+			// Reparse it, should be no errors and result in the exact same archive
+			after, err := txtar.Parse([]byte(stringified))
+			test.Ok(t, err) // Could not reparse stringified file
+
+			test.Equal(t, before.Comment(), after.Comment()) // Comment mismatch before vs after
+			test.Equal(
+				t,
+				before.Size(),
+				after.Size(),
+			) // Number of files mismatch before vs after
+			test.Equal(t, before.String(), after.String()) // String() mismatch before vs after
+		})
+	}
+}
+
+func TestCompat(t *testing.T) {
+	pattern := filepath.Join("testdata", "TestCompat", "*.txtar")
+	files, err := filepath.Glob(pattern)
+	test.Ok(t, err) // Could not glob the TestCompat directory
+
+	for _, file := range files {
+		t.Run(filepath.Base(file), func(t *testing.T) {
+			// Note: we're not testing we both error in the same conditions
+			// because we are intentionally being stricter
+			goArchive, err := gotxtar.ParseFile(file)
+			test.Ok(t, err) // x/tools/txtar could not parse file
+
+			ourArchive, err := txtar.ParseFile(file)
+			test.Ok(t, err) // our txtar could not parse file
+
+			test.Equal(
+				t,
+				strings.TrimSpace(string(goArchive.Comment)),
+				strings.TrimSpace(ourArchive.Comment()),
+			) // Comment mismatch between x/tools/txtar and this package
+
+			test.Equal(t, len(goArchive.Files), ourArchive.Size()) // Mismatch in number of files
+
+			for _, file := range goArchive.Files {
+				test.True(t, ourArchive.Has(file.Name)) // This package archive missing file
+				ourData, err := ourArchive.Read(file.Name)
+				test.Ok(t, err) // Could not read data
+
+				test.Equal(
+					t,
+					strings.TrimSpace(string(ourData)),
+					strings.TrimSpace(string(file.Data)),
+				) // File data mismatch
+			}
 		})
 	}
 }

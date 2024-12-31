@@ -1,0 +1,14 @@
+This is a test to see if our package is compatible with the original
+
+This time we have multiple files
+
+# What happens if I put a comment here
+
+-- file1.txt --
+Hello from file1.txt
+
+-- dir/subdir/file.go --
+go run something
+
+-- file2.txt --
+stuff here too
