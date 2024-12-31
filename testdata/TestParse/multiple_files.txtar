@@ -1,0 +1,10 @@
+I'm a top level comment
+
+-- file1.txt --
+file1 contents
+-- file2.txt --
+file2 contents
+-- file3.txt --
+file3 contents
+-- file4.txt --
+file4 contents
