@@ -9,19 +9,31 @@ import (
 )
 
 func TestArchiveComment(t *testing.T) {
-	t.Run("empty", func(t *testing.T) {
-		archive, err := txtar.New()
-		test.Ok(t, err)
+	tests := []struct {
+		name    string // Name of the test case
+		comment string // The comment to create the Archive with
+		wantErr bool   // Whether New should return an error
+	}{
+		{
+			name:    "empty",
+			comment: "",
+			wantErr: false,
+		},
+		{
+			name:    "with comment",
+			comment: "This is a comment",
+			wantErr: false,
+		},
+	}
 
-		test.Equal(t, archive.Comment(), "") // Archive comment should be empty
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			archive, err := txtar.New(txtar.WithComment(tt.comment))
+			test.WantErr(t, err, tt.wantErr)
 
-	t.Run("with comment", func(t *testing.T) {
-		archive, err := txtar.New(txtar.WithComment("This is a comment"))
-		test.Ok(t, err)
-
-		test.Equal(t, archive.Comment(), "This is a comment")
-	})
+			test.Equal(t, archive.Comment(), tt.comment)
+		})
+	}
 }
 
 func TestArchiveHasFile(t *testing.T) {
@@ -76,5 +88,29 @@ func TestArchiveRead(t *testing.T) {
 		contents, err := archive.Read("full.txt")
 		test.Ok(t, err)
 		test.EqualFunc(t, contents, []byte("stuff here"), bytes.Equal)
+	})
+}
+
+func TestArchiveDelete(t *testing.T) {
+	t.Run("missing", func(t *testing.T) {
+		archive, err := txtar.New()
+		test.Ok(t, err)
+
+		test.False(t, archive.Has("missing"))
+		archive.Delete("missing")
+		test.False(t, archive.Has("missing"))
+	})
+	t.Run("present", func(t *testing.T) {
+		archive, err := txtar.New()
+		test.Ok(t, err)
+
+		test.False(t, archive.Has("present")) // File "present" should not yet be present
+
+		err = archive.Add("present", []byte("present stuff"))
+		test.Ok(t, err)
+
+		test.True(t, archive.Has("present")) // File "present" should exist
+		archive.Delete("present")
+		test.False(t, archive.Has("present")) // File "present" should have been deleted
 	})
 }
