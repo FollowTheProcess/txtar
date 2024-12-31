@@ -343,3 +343,134 @@ file contents
 		})
 	}
 }
+
+func TestParse(t *testing.T) {
+	tests := []struct {
+		files   map[string]string // The expected files that should exist in the parsed archive
+		name    string            // Name of the test case
+		input   string            // Input to parse
+		errMsg  string            // If it does return an error, what should it say
+		comment string            // Expected top level comment of the archive
+		wantErr bool              // Whether Parse should return an error
+	}{
+		{
+			name:    "empty",
+			input:   "",
+			wantErr: true,
+			errMsg:  "Parse: cannot parse empty txtar archive",
+			comment: "",
+			files:   nil,
+		},
+		{
+			name:    "no files",
+			input:   "Just a top level comment",
+			wantErr: true,
+			errMsg:  "Parse: archive contains no files",
+			comment: "",
+			files:   nil,
+		},
+		{
+			name: "one file no comment",
+			input: `-- file1.txt --
+file1 contents
+`,
+			wantErr: false,
+			errMsg:  "",
+			comment: "",
+			files: map[string]string{
+				"file1.txt": "file1 contents",
+			},
+		},
+		{
+			name: "one file with comment",
+			input: `I'm a top level comment
+			
+-- file1.txt --
+file1 contents
+`,
+			wantErr: false,
+			errMsg:  "",
+			comment: "I'm a top level comment",
+			files: map[string]string{
+				"file1.txt": "file1 contents",
+			},
+		},
+		{
+			name: "multiple files",
+			input: `I'm a top level comment
+			
+-- file1.txt --
+file1 contents
+-- file2.txt --
+file2 contents
+-- file3.txt --
+file3 contents
+-- file4.txt --
+file4 contents
+`,
+			wantErr: false,
+			errMsg:  "",
+			comment: "I'm a top level comment",
+			files: map[string]string{
+				"file1.txt": "file1 contents",
+				"file2.txt": "file2 contents",
+				"file3.txt": "file3 contents",
+				"file4.txt": "file4 contents",
+			},
+		},
+		{
+			name: "multiple files whitespace",
+			input: `I'm a top level comment
+
+
+-- file1.txt --
+
+file1 contents
+
+
+-- file2.txt --
+file2 contents
+
+
+-- file3.txt --
+file3 contents
+
+-- file4.txt --
+file4 contents
+`,
+			wantErr: false,
+			errMsg:  "",
+			comment: "I'm a top level comment",
+			files: map[string]string{
+				"file1.txt": "file1 contents",
+				"file2.txt": "file2 contents",
+				"file3.txt": "file3 contents",
+				"file4.txt": "file4 contents",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			archive, err := txtar.Parse([]byte(tt.input))
+			test.WantErr(t, err, tt.wantErr)
+
+			if err != nil {
+				test.Equal(t, err.Error(), tt.errMsg)
+			}
+
+			if err == nil {
+				test.Equal(t, archive.Comment(), tt.comment) // Comment did not match expected
+
+				for file, contents := range tt.files {
+					test.True(t, archive.Has(file)) // Archive was missing file
+
+					got, err := archive.Read(file)
+					test.Ok(t, err)
+
+					test.Equal(t, string(got), contents) // File contents differed from expected
+				}
+			}
+		})
+	}
+}
