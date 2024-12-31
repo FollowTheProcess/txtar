@@ -15,6 +15,7 @@
 //   - Methods and functions are provided to help easily facilitate individual file editing
 //   - A number of useful interfaces are implemented to make an [Archive] more useful/flexible in the Go ecosystem
 //   - An ergonomic API for constructing an [Archive], rather than simply exposing struct fields
+//   - File names and contents are stored with all leading and trailing whitespace trimmed so that formatting the archive is easier and more consistent
 //
 // # Original Package Documentation
 //
@@ -50,8 +51,11 @@
 package txtar
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"slices"
+	"strings"
 )
 
 // Archive is a collection of files.
@@ -73,6 +77,7 @@ func (a Archive) Comment() string {
 
 // Has returns whether the archive contains a file with the given name.
 func (a Archive) Has(name string) bool {
+	name = strings.TrimSpace(name)
 	_, exists := a.files[name]
 	return exists
 }
@@ -81,10 +86,16 @@ func (a Archive) Has(name string) bool {
 //
 // File names must be unique within an archive so attempting to add a
 // duplicate file will result in an error.
+//
+// The file contents will have leading and trailing whitespace trimmed so that
+// formatting can be kept consistent when parsing and serialising an archive.
 func (a *Archive) Add(name string, contents []byte) error {
+	name = strings.TrimSpace(name)
 	if _, exists := a.files[name]; exists {
 		return fmt.Errorf("file with name %s already exists in archive", name)
 	}
+
+	contents = bytes.TrimSpace(contents)
 
 	a.files[name] = contents
 	return nil
@@ -94,6 +105,7 @@ func (a *Archive) Add(name string, contents []byte) error {
 //
 // If the file is not in the archive, an error will be returned.
 func (a Archive) Read(name string) ([]byte, error) {
+	name = strings.TrimSpace(name)
 	contents, exists := a.files[name]
 	if !exists {
 		return nil, fmt.Errorf("file %s not contained in the archive", name)
@@ -105,7 +117,43 @@ func (a Archive) Read(name string) ([]byte, error) {
 //
 // If the file does not exist, Delete is a no-op.
 func (a *Archive) Delete(name string) {
+	name = strings.TrimSpace(name)
 	delete(a.files, name)
+}
+
+// String implements the [fmt.Stringer] interface for an [Archive], allowing
+// it to print itself.
+//
+// The files will be printed sorted by filename.
+func (a Archive) String() string {
+	s := &strings.Builder{}
+
+	if a.comment != "" {
+		s.WriteString(a.comment)
+		s.WriteString("\n")
+
+		// If there are files after the comment we need an extra newline after the comment
+		if len(a.files) != 0 {
+			s.WriteByte('\n')
+		}
+	}
+
+	// Sort by filename so the output is deterministic
+	names := make([]string, 0, len(a.files))
+	for name := range a.files {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+
+	for _, name := range names {
+		s.WriteString("-- ")
+		s.WriteString(name)
+		s.WriteString(" --\n")
+		s.Write(a.files[name])
+		s.WriteByte('\n')
+	}
+
+	return s.String()
 }
 
 // New returns a new [Archive], applying any number of initialisation options.

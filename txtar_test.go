@@ -35,6 +35,113 @@ func TestArchiveComment(t *testing.T) {
 	}
 }
 
+func TestWithFiles(t *testing.T) {
+	tests := []struct {
+		name    string         // Name of the test case
+		options []txtar.Option // Options to apply to New
+		files   []string       // Filenames that should exist
+		wantErr bool           // Whether New should return an error
+	}{
+		{
+			name:    "empty",
+			options: nil,
+			files:   nil,
+			wantErr: false,
+		},
+		{
+			name: "single file",
+			options: []txtar.Option{
+				txtar.WithFile("file1", []byte("some stuff")),
+			},
+			files:   []string{"file1"},
+			wantErr: false,
+		},
+		{
+			name: "multiple unique files",
+			options: []txtar.Option{
+				txtar.WithFile("file1", []byte("some stuff")),
+				txtar.WithFile("file2", []byte("some stuff")),
+				txtar.WithFile("file3", []byte("some stuff")),
+				txtar.WithFile("file4", []byte("some stuff")),
+				txtar.WithFile("file5", []byte("some stuff")),
+			},
+			files:   []string{"file1", "file2", "file3", "file4", "file5"},
+			wantErr: false,
+		},
+		{
+			name: "duplicate file",
+			options: []txtar.Option{
+				txtar.WithFile("file1", []byte("some stuff")),
+				txtar.WithFile("file1", []byte("some different stuff")),
+			},
+			files:   []string{"file1"},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			archive, err := txtar.New(tt.options...)
+			test.WantErr(t, err, tt.wantErr)
+
+			if err == nil {
+				for _, file := range tt.files {
+					test.True(t, archive.Has(file))
+				}
+			}
+		})
+	}
+}
+
+func TestArchiveAdd(t *testing.T) {
+	tests := []struct {
+		name  string   // Name of the test case
+		files []string // List of files to add (contents don't matter)
+	}{
+		{
+			name:  "empty",
+			files: nil,
+		},
+		{
+			name: "single file",
+			files: []string{
+				"file1",
+			},
+		},
+		{
+			name: "multiple files",
+			files: []string{
+				"file1",
+				"file2",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			archive, err := txtar.New()
+			test.Ok(t, err)
+
+			for _, file := range tt.files {
+				err := archive.Add(file, []byte("some stuff"))
+				test.Ok(t, err)
+			}
+		})
+	}
+}
+
+func TestArchiveAddDuplicate(t *testing.T) {
+	archive, err := txtar.New()
+	test.Ok(t, err)
+
+	test.Ok(t, archive.Add("file1", []byte("some stuff")))
+
+	test.Err(
+		t,
+		archive.Add("file1", []byte("different stuff")),
+	) // Did not error on Add duplicate file
+}
+
 func TestArchiveHas(t *testing.T) {
 	tests := []struct {
 		name    string          // Name of the test case
@@ -159,4 +266,80 @@ func TestArchiveDelete(t *testing.T) {
 		archive.Delete("present")
 		test.False(t, archive.Has("present")) // File "present" should have been deleted
 	})
+}
+
+func TestArchiveString(t *testing.T) {
+	tests := []struct {
+		name    string         // Name of the test case
+		want    string         // The expected output of calling String
+		options []txtar.Option // Options to apply to New
+	}{
+		{
+			name:    "empty",
+			options: nil,
+			want:    "",
+		},
+		{
+			name: "only comment",
+			options: []txtar.Option{
+				txtar.WithComment("A comment"),
+			},
+			want: "A comment\n",
+		},
+		{
+			name: "only single file",
+			options: []txtar.Option{
+				txtar.WithFile("file1.txt", []byte("file1 contents")),
+			},
+			want: "-- file1.txt --\nfile1 contents\n",
+		},
+		{
+			name: "file and comment",
+			options: []txtar.Option{
+				txtar.WithComment("A comment"),
+				txtar.WithFile("file1.txt", []byte("file1 contents")),
+			},
+			want: `A comment
+
+-- file1.txt --
+file1 contents
+`,
+		},
+		{
+			name: "multiple files",
+			options: []txtar.Option{
+				txtar.WithComment("A slightly longer comment\n\nspanning several\nlines\n"),
+				txtar.WithFile("afile.txt", []byte("file1 contents")),
+				txtar.WithFile("bfile.txt", []byte("file2 contents")),
+				txtar.WithFile("dir/file3.txt", []byte("dir/file3 contents")),
+				txtar.WithFile("cfile.txt", []byte("file4 contents")),
+				txtar.WithFile("file.txt", []byte("file contents")),
+			},
+			want: `A slightly longer comment
+
+spanning several
+lines
+
+-- afile.txt --
+file1 contents
+-- bfile.txt --
+file2 contents
+-- cfile.txt --
+file4 contents
+-- dir/file3.txt --
+dir/file3 contents
+-- file.txt --
+file contents
+`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			archive, err := txtar.New(tt.options...)
+			test.Ok(t, err)
+
+			test.Equal(t, archive.String(), tt.want)
+		})
+	}
 }

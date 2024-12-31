@@ -1,14 +1,19 @@
 package txtar
 
+import "strings"
+
 // Option is a functional option for building/configuring an [Archive].
 type Option func(*Archive) error
 
 // WithComment is an [Option] that sets the top level comment for an [Archive].
 //
+// Leading and trailing whitespace is stripped from the comment before adding so that
+// the formatting is consistent when printing an archive.
+//
 // Successive calls overwrite any previous comment.
 func WithComment(comment string) Option {
 	return func(a *Archive) error {
-		a.comment = comment
+		a.comment = strings.TrimSpace(comment)
 		return nil
 	}
 }
