@@ -11,7 +11,7 @@
 // Improvements include:
 //
 //   - A CLI (cmd/txtar) that can "unzip" and "zip" a txtar archive to the real filesystem (and vice versa)
-//   - Files are stored as map[name]File so they may be looked up and operated on individually
+//   - Files stored in the archive may may be looked up by name and operated on individually
 //   - Methods and functions are provided to help easily facilitate individual file editing
 //   - A number of useful interfaces are implemented to make an [Archive] more useful/flexible in the Go ecosystem
 //   - An ergonomic API for constructing an [Archive], rather than simply exposing struct fields
@@ -56,8 +56,8 @@ import (
 
 // Archive is a collection of files.
 type Archive struct {
-	files   map[string]File // The files contained in the archive, stored by name
-	comment string          // The top level archive comment section
+	files   map[string][]byte // The files contained in the archive, map of name to contents
+	comment string            // The top level archive comment section
 }
 
 // Comment returns the top level archive comment.
@@ -71,7 +71,7 @@ func (a Archive) Has(name string) bool {
 	return exists
 }
 
-// Add adds a new [File] to the archive.
+// Add adds a new named file with contents to the archive.
 //
 // File names must be unique within an archive so attempting to add a
 // duplicate file will result in an error.
@@ -80,10 +80,7 @@ func (a *Archive) Add(name string, contents []byte) error {
 		return fmt.Errorf("file with name %s already exists in archive", name)
 	}
 
-	a.files[name] = File{
-		name:     name,
-		contents: contents,
-	}
+	a.files[name] = contents
 	return nil
 }
 
@@ -91,17 +88,17 @@ func (a *Archive) Add(name string, contents []byte) error {
 //
 // If the file is not in the archive, an error will be returned.
 func (a Archive) Read(name string) ([]byte, error) {
-	file, exists := a.files[name]
+	contents, exists := a.files[name]
 	if !exists {
 		return nil, fmt.Errorf("file %s not contained in the archive", name)
 	}
-	return file.contents, nil
+	return contents, nil
 }
 
 // New returns a new [Archive], applying any number of initialisation options.
 func New(options ...Option) (*Archive, error) {
 	archive := &Archive{
-		files: make(map[string]File),
+		files: make(map[string][]byte),
 	}
 
 	// Bubble up all the errors at once rather than forcing callers
@@ -116,15 +113,4 @@ func New(options ...Option) (*Archive, error) {
 	}
 
 	return archive, nil
-}
-
-// File is a single file within an [Archive].
-type File struct {
-	name     string // The name of the file, so it can be accessed in methods
-	contents []byte // The contents of the file
-}
-
-// Name returns the name of the file.
-func (f File) Name() string {
-	return f.name
 }

@@ -74,7 +74,7 @@ func TestArchiveRead(t *testing.T) {
 		test.Ok(t, err)
 
 		contents, err := archive.Read("full.txt")
-		test.Ok(t, err) // File is empty, not missing, should be no error
+		test.Ok(t, err)
 		test.EqualFunc(t, contents, []byte("stuff here"), bytes.Equal)
 	})
 }
