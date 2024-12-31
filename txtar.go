@@ -55,6 +55,12 @@ import (
 )
 
 // Archive is a collection of files.
+//
+// Unlike the original package, an Archive's fields are private with access provided by
+// an ergonomic API to read, write and delete individual files.
+//
+// An Archive is not safe for concurrent access across multiple goroutines, the caller
+// is responsible for synchronising concurrent access.
 type Archive struct {
 	files   map[string][]byte // The files contained in the archive, map of name to contents
 	comment string            // The top level archive comment section
@@ -93,6 +99,13 @@ func (a Archive) Read(name string) ([]byte, error) {
 		return nil, fmt.Errorf("file %s not contained in the archive", name)
 	}
 	return contents, nil
+}
+
+// Delete removes a file from the archive.
+//
+// If the file does not exist, Delete is a no-op.
+func (a *Archive) Delete(name string) {
+	delete(a.files, name)
 }
 
 // New returns a new [Archive], applying any number of initialisation options.

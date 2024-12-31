@@ -13,7 +13,7 @@ func WithComment(comment string) Option {
 	}
 }
 
-// WithFile is an [Option] that adds a [File] to an [Archive].
+// WithFile is an [Option] that adds a file to an [Archive].
 //
 // It is useful for ergonomically building a new archive from Go code
 // e.g. in tests.
