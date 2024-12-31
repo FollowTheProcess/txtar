@@ -1,6 +1,8 @@
 package txtar_test
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/FollowTheProcess/test"
@@ -340,6 +342,100 @@ file contents
 			test.Ok(t, err)
 
 			test.Equal(t, archive.String(), tt.want)
+		})
+	}
+}
+
+func TestParse(t *testing.T) {
+	tests := []struct {
+		files   map[string]string // The expected files that should exist in the parsed archive
+		name    string            // Filename of the input file (relative to Testdata/TestParse)
+		errMsg  string            // If it does return an error, what should it say
+		comment string            // Expected top level comment of the archive
+		wantErr bool              // Whether Parse should return an error
+	}{
+		{
+			name:    "empty.txtar",
+			wantErr: true,
+			errMsg:  "Parse: cannot parse empty txtar archive",
+			comment: "",
+			files:   nil,
+		},
+		{
+			name:    "no_files.txtar",
+			wantErr: true,
+			errMsg:  "Parse: archive contains no files",
+			comment: "",
+			files:   nil,
+		},
+		{
+			name:    "one_file.txtar",
+			wantErr: false,
+			errMsg:  "",
+			comment: "",
+			files: map[string]string{
+				"file1.txt": "file1 contents",
+			},
+		},
+		{
+			name:    "one_file_with_comment.txtar",
+			wantErr: false,
+			errMsg:  "",
+			comment: "I'm a top level comment",
+			files: map[string]string{
+				"file1.txt": "file1 contents",
+			},
+		},
+		{
+			name:    "multiple_files.txtar",
+			wantErr: false,
+			errMsg:  "",
+			comment: "I'm a top level comment",
+			files: map[string]string{
+				"file1.txt": "file1 contents",
+				"file2.txt": "file2 contents",
+				"file3.txt": "file3 contents",
+				"file4.txt": "file4 contents",
+			},
+		},
+		{
+			name:    "multiple_files_whitespace.txtar",
+			wantErr: false,
+			errMsg:  "",
+			comment: "I'm a top level comment",
+			files: map[string]string{
+				"file1.txt": "file1 contents",
+				"file2.txt": "file2 contents",
+				"file3.txt": "file3 contents",
+				"file4.txt": "file4 contents",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			input, err := os.ReadFile(filepath.Join(test.Data(t), "TestParse", tt.name))
+			test.Ok(t, err) // Could not load test input file
+
+			archive, err := txtar.Parse(input)
+			test.WantErr(t, err, tt.wantErr)
+
+			if err != nil {
+				test.Equal(t, err.Error(), tt.errMsg)
+			}
+
+			if err == nil {
+				test.Equal(t, archive.Comment(), tt.comment) // Comment did not match expected
+
+				for file, contents := range tt.files {
+					test.True(t, archive.Has(file)) // Archive was missing file
+
+					got, err := archive.Read(file)
+					test.Ok(t, err)
+
+					test.Equal(t, string(got), contents) // File contents differed from expected
+				}
+			}
 		})
 	}
 }
