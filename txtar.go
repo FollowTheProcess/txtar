@@ -58,6 +58,9 @@ import (
 //
 // Unlike the original package, an Archive's fields are private with access provided by
 // an ergonomic API to read, write and delete individual files.
+//
+// An Archive is not safe for concurrent access across multiple goroutines, the caller
+// is responsible for synchronising concurrent access.
 type Archive struct {
 	files   map[string][]byte // The files contained in the archive, map of name to contents
 	comment string            // The top level archive comment section

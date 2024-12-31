@@ -1,7 +1,6 @@
 package txtar_test
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/FollowTheProcess/test"
@@ -36,59 +35,106 @@ func TestArchiveComment(t *testing.T) {
 	}
 }
 
-func TestArchiveHasFile(t *testing.T) {
-	t.Run("missing", func(t *testing.T) {
-		archive, err := txtar.New()
-		test.Ok(t, err)
+func TestArchiveHas(t *testing.T) {
+	tests := []struct {
+		name    string          // Name of the test case
+		files   map[string]bool // Map of <filename> -> <should exist>
+		options []txtar.Option  // The options to pass to New in the test
+	}{
+		{
+			name:    "empty",
+			options: nil,
+			files:   nil,
+		},
+		{
+			name:    "missing",
+			options: []txtar.Option{txtar.WithFile("afile", []byte("some stuff"))},
+			files: map[string]bool{
+				"afile":   true,
+				"another": false,
+			},
+		},
+		{
+			name: "both",
+			options: []txtar.Option{
+				txtar.WithFile("afile", []byte("some stuff")),
+				txtar.WithFile("another", []byte("moar stuff")),
+			},
+			files: map[string]bool{
+				"afile":   true,
+				"another": true,
+			},
+		},
+	}
 
-		test.False(t, archive.Has("missing.txt")) // Has() reported true when it shouldn't
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			archive, err := txtar.New(tt.options...)
+			test.Ok(t, err)
 
-	t.Run("using WithFile", func(t *testing.T) {
-		archive, err := txtar.New(txtar.WithFile("exists.txt", []byte("contents for exists.txt")))
-		test.Ok(t, err)
-
-		test.True(t, archive.Has("exists.txt")) // exists.txt should exist after WithFile
-	})
-
-	t.Run("using Add", func(t *testing.T) {
-		archive, err := txtar.New()
-		test.Ok(t, err)
-
-		err = archive.Add("exists.txt", []byte("contents for exists.txt"))
-		test.Ok(t, err)
-
-		test.True(t, archive.Has("exists.txt")) // exists.txt should exist after Add
-	})
+			for name, exists := range tt.files {
+				test.Equal(t, archive.Has(name), exists)
+			}
+		})
+	}
 }
 
 func TestArchiveRead(t *testing.T) {
-	t.Run("missing", func(t *testing.T) {
-		archive, err := txtar.New()
+	tests := []struct {
+		name    string            // Name of the test case
+		files   map[string]string // Map of <filename> -> <expected contents> to read
+		options []txtar.Option    // The options to apply to New
+		wantErr bool              // Whether Read should return an error
+	}{
+		{
+			name:    "empty",
+			options: nil,
+			files:   nil,
+			wantErr: false,
+		},
+		{
+			name: "missing",
+			options: []txtar.Option{
+				txtar.WithFile("exists.txt", []byte("some stuff here")),
+			},
+			files: map[string]string{
+				"missing.txt": "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "exists",
+			options: []txtar.Option{
+				txtar.WithFile("exists.txt", []byte("some stuff here")),
+			},
+			files: map[string]string{
+				"exists.txt": "some stuff here",
+			},
+			wantErr: false,
+		},
+		{
+			name: "exists but empty",
+			options: []txtar.Option{
+				txtar.WithFile("exists.txt", nil),
+			},
+			files: map[string]string{
+				"exists.txt": "",
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		archive, err := txtar.New(tt.options...)
 		test.Ok(t, err)
 
-		contents, err := archive.Read("missing")
-		test.Err(t, err) // Read did not return error on missing file
-		test.EqualFunc(t, contents, nil, bytes.Equal)
-	})
+		for name, want := range tt.files {
+			got, err := archive.Read(name)
+			test.WantErr(t, err, tt.wantErr)
 
-	t.Run("empty", func(t *testing.T) {
-		archive, err := txtar.New(txtar.WithFile("empty.txt", nil))
-		test.Ok(t, err)
-
-		contents, err := archive.Read("empty.txt")
-		test.Ok(t, err) // File is empty, not missing, should be no error
-		test.EqualFunc(t, contents, nil, bytes.Equal)
-	})
-
-	t.Run("full", func(t *testing.T) {
-		archive, err := txtar.New(txtar.WithFile("full.txt", []byte("stuff here")))
-		test.Ok(t, err)
-
-		contents, err := archive.Read("full.txt")
-		test.Ok(t, err)
-		test.EqualFunc(t, contents, []byte("stuff here"), bytes.Equal)
-	})
+			test.Equal(t, string(got), want)
+		}
+	}
 }
 
 func TestArchiveDelete(t *testing.T) {
