@@ -188,9 +188,6 @@ func New(options ...Option) (*Archive, error) {
 // Unlike the original txtar package, Parse can (and will) return an error in
 // the presence of a malformed document.
 func Parse(data []byte) (*Archive, error) {
-	// TODO(@FollowTheProcess): This is more or less the original parser just to get things working
-	// explore edge cases and see if we can make the errors clear and handle any weird syntax issues
-
 	if len(data) == 0 {
 		return nil, errors.New("Parse: cannot parse empty txtar archive")
 	}
@@ -207,6 +204,9 @@ func Parse(data []byte) (*Archive, error) {
 	}
 
 	comment, name, data := findFileMarker(data)
+	if data == nil {
+		return nil, errors.New("Parse: unterminated file marker")
+	}
 	archive.comment = string(bytes.TrimSpace(comment))
 
 	for name != "" {
@@ -218,6 +218,8 @@ func Parse(data []byte) (*Archive, error) {
 
 	return archive, nil
 }
+
+// Below is verbatim the parser from the original package
 
 // findFileMarker finds the next file marker in data,
 // extracts the file name, and returns the data before the marker,
