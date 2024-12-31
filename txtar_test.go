@@ -429,6 +429,32 @@ func TestParseInvalid(t *testing.T) {
 	}
 }
 
+func TestParseFile(t *testing.T) {
+	tests := []struct {
+		name    string // Name of the test case
+		file    string // The file to parse
+		wantErr bool   // Whether ParseFile should return an error
+	}{
+		{
+			name:    "missing",
+			file:    "missing.txt",
+			wantErr: true,
+		},
+		{
+			name:    "exists",
+			file:    filepath.Join("testdata", "TestParse", "valid", "multiple_files.txtar"),
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := txtar.ParseFile(tt.file)
+			test.WantErr(t, err, tt.wantErr)
+		})
+	}
+}
+
 func TestParseStringRoundTrip(t *testing.T) {
 	pattern := filepath.Join("testdata", "TestParse", "valid", "*.txtar")
 	files, err := filepath.Glob(pattern)
