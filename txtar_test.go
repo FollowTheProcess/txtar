@@ -1,6 +1,7 @@
 package txtar_test
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"strings"
@@ -500,7 +501,7 @@ func TestCompat(t *testing.T) {
 
 			test.Equal(
 				t,
-				strings.TrimSpace(string(goArchive.Comment)),
+				clean(goArchive.Comment),
 				strings.TrimSpace(ourArchive.Comment()),
 			) // Comment mismatch between x/tools/txtar and this package
 
@@ -511,12 +512,15 @@ func TestCompat(t *testing.T) {
 				ourData, err := ourArchive.Read(file.Name)
 				test.Ok(t, err) // Could not read data
 
-				test.Equal(
-					t,
-					strings.TrimSpace(string(ourData)),
-					strings.TrimSpace(string(file.Data)),
-				) // File data mismatch
+				test.Equal(t, clean(ourData), clean(file.Data)) // File data mismatch
 			}
 		})
 	}
+}
+
+// clean de-windows's everything and trims all leading and trailing whitespace
+// returning the string for comparison.
+func clean(data []byte) string {
+	data = bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n"))
+	return string(bytes.TrimSpace(data))
 }
