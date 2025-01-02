@@ -61,8 +61,6 @@ import (
 	"strings"
 )
 
-// TODO(@FollowTheProcess): A method for writing to a file
-
 var (
 	newlineMarker = []byte("\n-- ")
 	marker        = []byte("-- ")
