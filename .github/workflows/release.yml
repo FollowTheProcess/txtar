@@ -24,19 +24,11 @@ jobs:
       - name: Fetch Existing Tags
         run: git fetch --force --tags
 
-      - name: Install Syft
-        uses: anchore/sbom-action/download-syft@v0.17.9
-
       - name: Parse Release Version
         id: version
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
 
       - name: Publish Draft Release
         uses: release-drafter/release-drafter@v6
@@ -45,17 +37,3 @@ jobs:
           publish: true
         env:
           GITHUB_TOKEN: ${{ github.token }}
-
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          version: latest
-          args: release --clean
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-
-      - name: Generate Binary Attestation
-        uses: actions/attest-build-provenance@v2
-        with:
-          subject-path: "dist/*"

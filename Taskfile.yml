@@ -40,18 +40,6 @@ tasks:
     cmds:
       - go test -race ./... {{ .CLI_ARGS }}
 
-  build:
-    desc: Compile the project binary
-    sources:
-      - "**/*.go"
-      - .goreleaser.yml
-    generates:
-      - bin
-      - dist
-    cmds:
-      - mkdir -p ./bin
-      - goreleaser build --single-target --skip before --snapshot --clean --output ./bin/txtar
-
   bench:
     desc: Run all project benchmarks
     sources:
@@ -104,19 +92,6 @@ tasks:
     cmds:
       - go clean ./...
       - rm -rf {{ .COV_DATA }}
-
-  install:
-    desc: Install the project on your machine
-    deps:
-      - uninstall
-      - build
-    cmds:
-      - cp ./bin/txtar $GOBIN/txtar
-
-  uninstall:
-    desc: Uninstall the project from your machine
-    cmds:
-      - rm -rf $GOBIN/txtar
 
   update:
     desc: Updates dependencies in go.mod and go.sum
