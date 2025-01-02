@@ -55,6 +55,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"iter"
 	"os"
 	"slices"
@@ -234,8 +235,14 @@ func New(options ...Option) (*Archive, error) {
 // Parse constructs an [Archive] from it's serialised representation in text.
 //
 // Unlike the original txtar package, Parse can (and will) return an error in
-// the presence of a malformed document.
-func Parse(data []byte) (*Archive, error) {
+// the presence of a malformed document. We also take an [io.Reader] rather than
+// a byte slice for greater flexibility.
+func Parse(r io.Reader) (*Archive, error) {
+	data, err := io.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+
 	if len(data) == 0 {
 		return nil, errors.New("Parse: cannot parse empty txtar archive")
 	}
@@ -272,12 +279,13 @@ func Parse(data []byte) (*Archive, error) {
 // Unlike the original txtar package, Parse can (and will) return an error in
 // the presence of a malformed document.
 func ParseFile(file string) (*Archive, error) {
-	contents, err := os.ReadFile(file)
+	f, err := os.Open(file)
 	if err != nil {
-		return nil, fmt.Errorf("ParseFile: %w", err)
+		return nil, fmt.Errorf("ParseFile: failed to open %s: %w", file, err)
 	}
+	defer f.Close()
 
-	return Parse(contents)
+	return Parse(f)
 }
 
 // Equal returns whether two archives should be considered equal.

@@ -571,10 +571,12 @@ func TestParseValid(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			input, err := os.ReadFile(filepath.Join(test.Data(t), "TestParse", "valid", tt.name))
-			test.Ok(t, err) // Could not load test input file
+			path := filepath.Join(test.Data(t), "TestParse", "valid", tt.name)
+			file, err := os.Open(path)
+			test.Ok(t, err)
+			defer file.Close()
 
-			archive, err := txtar.Parse(input)
+			archive, err := txtar.Parse(file)
 			test.Ok(t, err) // Parse returned an unexpected error
 
 			test.Equal(t, archive.Comment(), tt.comment) // Comment did not match expected
@@ -598,10 +600,11 @@ func TestParseInvalid(t *testing.T) {
 
 	for _, file := range files {
 		t.Run(filepath.Base(file), func(t *testing.T) {
-			contents, err := os.ReadFile(file)
+			f, err := os.Open(file)
 			test.Ok(t, err) // Could not read invalid test case file
+			defer f.Close()
 
-			archive, err := txtar.Parse(contents)
+			archive, err := txtar.Parse(f)
 			test.Err(t, err)            // Parse of invalid file did not return an error
 			test.Equal(t, archive, nil) // Archive was not nil
 		})
@@ -648,7 +651,7 @@ func TestParseStringRoundTrip(t *testing.T) {
 			stringified := before.String()
 
 			// Reparse it, should be no errors and result in the exact same archive
-			after, err := txtar.Parse([]byte(stringified))
+			after, err := txtar.Parse(strings.NewReader(stringified))
 			test.Ok(t, err) // Could not reparse stringified file
 
 			test.Equal(t, before.Comment(), after.Comment()) // Comment mismatch before vs after
@@ -687,15 +690,17 @@ func TestCompat(t *testing.T) {
 
 	for _, file := range files {
 		t.Run(filepath.Base(file), func(t *testing.T) {
-			contents, err := os.ReadFile(file)
-			test.Ok(t, err)
-			contents = clean(contents)
-
 			// Note: we're not testing we both error in the same conditions
 			// because we are intentionally being stricter
+			contents, err := os.ReadFile(file)
+			test.Ok(t, err)
+
+			// We need to normalise line endings to get equivalent behaviour on all platforms
+			contents = bytes.ReplaceAll(contents, []byte("\r\n"), []byte("\n"))
+
 			goArchive := gotxtar.Parse(contents)
 
-			ourArchive, err := txtar.Parse(contents)
+			ourArchive, err := txtar.Parse(bytes.NewReader(contents))
 			test.Ok(t, err) // our txtar could not parse file
 
 			test.Equal( // Comment mismatch between x/tools/txtar and this package
