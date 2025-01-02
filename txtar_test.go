@@ -692,10 +692,15 @@ func TestCompat(t *testing.T) {
 		t.Run(filepath.Base(file), func(t *testing.T) {
 			// Note: we're not testing we both error in the same conditions
 			// because we are intentionally being stricter
-			goArchive, err := gotxtar.ParseFile(file)
+			contents, err := os.ReadFile(file)
 			test.Ok(t, err)
 
-			ourArchive, err := txtar.ParseFile(file)
+			// We need to normalise line endings to get equivalent behaviour on all platforms
+			contents = bytes.ReplaceAll(contents, []byte("\r\n"), []byte("\n"))
+
+			goArchive := gotxtar.Parse(contents)
+
+			ourArchive, err := txtar.Parse(bytes.NewReader(contents))
 			test.Ok(t, err) // our txtar could not parse file
 
 			test.Equal( // Comment mismatch between x/tools/txtar and this package
