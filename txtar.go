@@ -288,6 +288,15 @@ func ParseFile(file string) (*Archive, error) {
 	return Parse(f)
 }
 
+// Dump writes the [Archive] to w in it's serialised representation.
+func Dump(w io.Writer, archive *Archive) error {
+	if archive == nil {
+		return errors.New("Dump: archive was nil")
+	}
+	_, err := w.Write([]byte(archive.String()))
+	return err
+}
+
 // Equal returns whether two archives should be considered equal.
 //
 // An archive is considered equal to another if they have the same comment

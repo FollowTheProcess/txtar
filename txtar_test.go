@@ -722,6 +722,30 @@ func TestCompat(t *testing.T) {
 	}
 }
 
+func TestDump(t *testing.T) {
+	archive, err := txtar.New(
+		txtar.WithComment("A top level comment"),
+		txtar.WithFile("file1", []byte("file 1 contents")),
+		txtar.WithFile("file2", []byte("file 2 contents")),
+		txtar.WithFile("file3", []byte("file 3 contents")),
+	)
+
+	test.Ok(t, err)
+
+	buf := &bytes.Buffer{}
+	err = txtar.Dump(buf, archive)
+	test.Ok(t, err)
+
+	test.Equal(t, buf.String(), archive.String())
+}
+
+func TestDumpNilSafe(t *testing.T) {
+	var archive *txtar.Archive
+	buf := &bytes.Buffer{}
+	err := txtar.Dump(buf, archive)
+	test.Err(t, err)
+}
+
 // clean de-windows's everything and trims all leading and trailing whitespace
 // returning a byte slice.
 func clean(data []byte) []byte {
