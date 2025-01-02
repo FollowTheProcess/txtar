@@ -99,8 +99,8 @@ func (a *Archive) Has(name string) bool {
 
 // Add adds a new named file with contents to the archive.
 //
-// File names must be unique within an archive so attempting to add a
-// duplicate file will result in an error.
+// Calling Add with the name of a file that already exists in the archive will
+// overwrite the contents of that file.
 //
 // The file contents will have leading and trailing whitespace trimmed so that
 // formatting can be kept consistent when parsing and serialising an archive.
@@ -109,10 +109,6 @@ func (a *Archive) Add(name string, contents []byte) error {
 		return errors.New("Add called on a nil Archive")
 	}
 	name = strings.TrimSpace(name)
-	if _, exists := a.files[name]; exists {
-		return fmt.Errorf("file with name %s already exists in archive", name)
-	}
-
 	contents = bytes.TrimSpace(contents)
 
 	a.files[name] = contents

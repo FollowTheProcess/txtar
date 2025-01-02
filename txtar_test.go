@@ -81,7 +81,7 @@ func TestWithFiles(t *testing.T) {
 				txtar.WithFile("file1", []byte("some different stuff")),
 			},
 			files:   []string{"file1"},
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 
@@ -160,11 +160,11 @@ func TestArchiveAddDuplicate(t *testing.T) {
 	test.Ok(t, err)
 
 	test.Ok(t, archive.Add("file1", []byte("some stuff")))
+	test.Ok(t, archive.Add("file1", []byte("some more stuff")))
 
-	test.Err(
-		t,
-		archive.Add("file1", []byte("different stuff")),
-	) // Did not error on Add duplicate file
+	contents, err := archive.Read("file1")
+	test.Ok(t, err)
+	test.Equal(t, string(contents), "some more stuff")
 }
 
 func TestArchiveHas(t *testing.T) {
