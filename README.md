@@ -6,7 +6,7 @@
 [![CI](https://github.com/FollowTheProcess/txtar/workflows/CI/badge.svg)](https://github.com/FollowTheProcess/txtar/actions?query=workflow%3ACI)
 [![codecov](https://codecov.io/gh/FollowTheProcess/txtar/branch/main/graph/badge.svg)](https://codecov.io/gh/FollowTheProcess/txtar)
 
-An extended implementation of the [txtar] archive format
+An extended reimplementation of the [txtar] archive format
 
 > [!WARNING]
 > **txtar is in early development and is not yet ready for use**

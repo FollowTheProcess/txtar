@@ -10,13 +10,13 @@
 //
 // Improvements include:
 //
-//   - A CLI (cmd/txtar) that can "unzip" and "zip" a txtar archive to the real filesystem (and vice versa)
 //   - Files stored in the archive may may be looked up by name and operated on individually
 //   - Methods and functions are provided to help easily facilitate individual file editing
-//   - A number of useful interfaces are implemented to make an [Archive] more useful/flexible in the Go ecosystem
 //   - An ergonomic API for constructing an [Archive], rather than simply exposing struct fields
 //   - File names and contents are stored with all leading and trailing whitespace trimmed so that formatting the archive is easier and more consistent
 //   - Parsing an [Archive] from it's serialised format *can* error in the presence of a malformed document
+//   - [Parse] accepts an [io.Reader] rather than a []byte
+//   - [Dump] is provided to serialise an [Archive] to an [io.Writer]
 //
 // # Original Package Documentation
 //
