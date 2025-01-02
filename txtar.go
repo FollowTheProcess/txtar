@@ -55,6 +55,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"iter"
 	"os"
 	"slices"
 	"strings"
@@ -171,6 +172,20 @@ func (a Archive) String() string {
 	}
 
 	return s.String()
+}
+
+// Files returns a iterator over the archive's filenames and contents.
+//
+// The order of iteration is non-deterministic, if order is required the caller
+// must collect and sort the results.
+func (a Archive) Files() iter.Seq2[string, []byte] {
+	return func(yield func(string, []byte) bool) {
+		for file, contents := range a.files {
+			if !yield(file, contents) {
+				return
+			}
+		}
+	}
 }
 
 // New returns a new [Archive], applying any number of initialisation options.
