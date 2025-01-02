@@ -2,6 +2,7 @@ package txtar_test
 
 import (
 	"bytes"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -482,6 +483,24 @@ func TestParseStringRoundTrip(t *testing.T) {
 			test.Equal(t, before.String(), after.String()) // String() mismatch before vs after
 		})
 	}
+}
+
+func TestFiles(t *testing.T) {
+	archive, err := txtar.New(
+		txtar.WithFile("file1", []byte("some stuff")),
+		txtar.WithFile("file2", []byte("file2 stuff")),
+		txtar.WithFile("file3", []byte("file3 stuff")),
+		txtar.WithFile("file4", []byte("file4 stuff")),
+	)
+	test.Ok(t, err)
+
+	files := maps.Collect(archive.Files())
+
+	test.Equal(t, len(files), 4)                         // Wrong number of files from the iterator
+	test.Equal(t, string(files["file1"]), "some stuff")  // Wrong contents for file1
+	test.Equal(t, string(files["file2"]), "file2 stuff") // Wrong contents for file2
+	test.Equal(t, string(files["file3"]), "file3 stuff") // Wrong contents for file3
+	test.Equal(t, string(files["file4"]), "file4 stuff") // Wrong contents for file4
 }
 
 func TestCompat(t *testing.T) {
