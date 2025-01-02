@@ -57,7 +57,6 @@ import (
 	"fmt"
 	"io"
 	"iter"
-	"os"
 	"slices"
 	"strings"
 )
@@ -272,20 +271,6 @@ func Parse(r io.Reader) (*Archive, error) {
 	}
 
 	return archive, nil
-}
-
-// ParseFile parses an [Archive] from the named file.
-//
-// Unlike the original txtar package, Parse can (and will) return an error in
-// the presence of a malformed document.
-func ParseFile(file string) (*Archive, error) {
-	f, err := os.Open(file)
-	if err != nil {
-		return nil, fmt.Errorf("ParseFile: failed to open %s: %w", file, err)
-	}
-	defer f.Close()
-
-	return Parse(f)
 }
 
 // Dump writes the [Archive] to w in it's serialised representation.
