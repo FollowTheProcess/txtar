@@ -611,32 +611,6 @@ func TestParseInvalid(t *testing.T) {
 	}
 }
 
-func TestParseFile(t *testing.T) {
-	tests := []struct {
-		name    string // Name of the test case
-		file    string // The file to parse
-		wantErr bool   // Whether ParseFile should return an error
-	}{
-		{
-			name:    "missing",
-			file:    "missing.txt",
-			wantErr: true,
-		},
-		{
-			name:    "exists",
-			file:    filepath.Join("testdata", "TestParse", "valid", "multiple_files.txtar"),
-			wantErr: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := txtar.ParseFile(tt.file)
-			test.WantErr(t, err, tt.wantErr)
-		})
-	}
-}
-
 func TestParseStringRoundTrip(t *testing.T) {
 	pattern := filepath.Join("testdata", "TestParse", "valid", "*.txtar")
 	files, err := filepath.Glob(pattern)
@@ -644,7 +618,11 @@ func TestParseStringRoundTrip(t *testing.T) {
 
 	for _, file := range files {
 		t.Run(filepath.Base(file), func(t *testing.T) {
-			before, err := txtar.ParseFile(file)
+			f, err := os.Open(file)
+			test.Ok(t, err)
+			defer f.Close()
+
+			before, err := txtar.Parse(f)
 			test.Ok(t, err) // Could not parse file
 
 			// Stringify it
@@ -720,6 +698,30 @@ func TestCompat(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDump(t *testing.T) {
+	archive, err := txtar.New(
+		txtar.WithComment("A top level comment"),
+		txtar.WithFile("file1", []byte("file 1 contents")),
+		txtar.WithFile("file2", []byte("file 2 contents")),
+		txtar.WithFile("file3", []byte("file 3 contents")),
+	)
+
+	test.Ok(t, err)
+
+	buf := &bytes.Buffer{}
+	err = txtar.Dump(buf, archive)
+	test.Ok(t, err)
+
+	test.Equal(t, buf.String(), archive.String())
+}
+
+func TestDumpNilSafe(t *testing.T) {
+	var archive *txtar.Archive
+	buf := &bytes.Buffer{}
+	err := txtar.Dump(buf, archive)
+	test.Err(t, err)
 }
 
 // clean de-windows's everything and trims all leading and trailing whitespace
