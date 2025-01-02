@@ -136,6 +136,25 @@ func TestArchiveAdd(t *testing.T) {
 	}
 }
 
+func TestArchiveNilSafe(t *testing.T) {
+	var archive *txtar.Archive
+
+	// Everything below must not panic
+	err := archive.Add("file", []byte("stuff here"))
+	test.Err(t, err)
+	test.Equal(t, archive.Comment(), "")
+	test.False(t, archive.Has("file"))
+
+	contents, err := archive.Read("file")
+	test.Err(t, err)
+	test.EqualFunc(t, contents, nil, bytes.Equal)
+
+	test.Equal(t, archive.Size(), 0)
+	test.Equal(t, archive.String(), "")
+	archive.Delete("file")
+	maps.Collect(archive.Files())
+}
+
 func TestArchiveAddDuplicate(t *testing.T) {
 	archive, err := txtar.New()
 	test.Ok(t, err)
@@ -346,6 +365,164 @@ file contents
 			test.Ok(t, err)
 
 			test.Equal(t, archive.String(), tt.want)
+		})
+	}
+}
+
+func TestEqual(t *testing.T) {
+	tests := []struct {
+		name        string         // Name of the test case
+		thisOptions []txtar.Option // Options to apply to the base archive
+		thatOptions []txtar.Option // Options to apply to the other
+		want        bool           // What equal should return
+	}{
+		{
+			name:        "empty",
+			thisOptions: nil,
+			thatOptions: nil,
+			want:        true,
+		},
+		{
+			name:        "this comment",
+			thisOptions: []txtar.Option{txtar.WithComment("This one")},
+			thatOptions: nil,
+			want:        false,
+		},
+		{
+			name:        "that comment",
+			thisOptions: nil,
+			thatOptions: []txtar.Option{txtar.WithComment("That one")},
+			want:        false,
+		},
+		{
+			name:        "different comment",
+			thisOptions: []txtar.Option{txtar.WithComment("This one")},
+			thatOptions: []txtar.Option{txtar.WithComment("That one")},
+			want:        false,
+		},
+		{
+			name:        "this empty",
+			thisOptions: nil,
+			thatOptions: []txtar.Option{
+				txtar.WithComment("A comment"),
+				txtar.WithFile("file1", []byte("file1 contents")),
+			},
+			want: false,
+		},
+		{
+			name: "that empty",
+			thisOptions: []txtar.Option{
+				txtar.WithComment("A comment"),
+				txtar.WithFile("file1", []byte("file1 contents")),
+				txtar.WithFile("file2", []byte("file2 contents")),
+			},
+			thatOptions: nil,
+			want:        false,
+		},
+		{
+			name: "different len",
+			thisOptions: []txtar.Option{
+				txtar.WithComment("A comment"),
+				txtar.WithFile("file1", []byte("file1 contents")),
+				txtar.WithFile("file2", []byte("file2 contents")),
+			},
+			thatOptions: []txtar.Option{
+				txtar.WithComment("A comment"),
+				txtar.WithFile("file1", []byte("file1 contents")),
+			},
+			want: false,
+		},
+		{
+			name: "different filenames",
+			thisOptions: []txtar.Option{
+				txtar.WithComment("A comment"),
+				txtar.WithFile("thisfile1", []byte("file1 contents")),
+				txtar.WithFile("file2", []byte("file2 contents")),
+			},
+			thatOptions: []txtar.Option{
+				txtar.WithComment("A comment"),
+				txtar.WithFile("thatfile1", []byte("file1 contents")),
+				txtar.WithFile("file2", []byte("file2 contents")),
+			},
+			want: false,
+		},
+		{
+			name: "different contents",
+			thisOptions: []txtar.Option{
+				txtar.WithFile("file1", []byte("this file1 contents")),
+				txtar.WithFile("file2", []byte("this file2 contents")),
+			},
+			thatOptions: []txtar.Option{
+				txtar.WithFile("file1", []byte("that file1 contents")),
+				txtar.WithFile("file2", []byte("that file2 contents")),
+			},
+			want: false,
+		},
+		{
+			name: "equal",
+			thisOptions: []txtar.Option{
+				txtar.WithComment("A comment"),
+				txtar.WithFile("file1", []byte("file1 contents")),
+				txtar.WithFile("file2", []byte("file2 contents")),
+			},
+			thatOptions: []txtar.Option{
+				txtar.WithComment("A comment"),
+				txtar.WithFile("file1", []byte("file1 contents")),
+				txtar.WithFile("file2", []byte("file2 contents")),
+			},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			this, err := txtar.New(tt.thisOptions...)
+			test.Ok(t, err)
+
+			that, err := txtar.New(tt.thatOptions...)
+			test.Ok(t, err)
+
+			test.Equal(t, txtar.Equal(this, that), tt.want) // Equal did not return as expected
+		})
+	}
+}
+
+func TestEqualNil(t *testing.T) {
+	tests := []struct {
+		this *txtar.Archive
+		that *txtar.Archive
+		name string
+		want bool
+	}{
+		{
+			name: "both nil",
+			this: nil,
+			that: nil,
+			want: true,
+		},
+		{
+			name: "this nil",
+			this: nil,
+			that: &txtar.Archive{},
+			want: false,
+		},
+		{
+			name: "that nil",
+			this: &txtar.Archive{},
+			that: nil,
+			want: false,
+		},
+		{
+			name: "both non nil",
+			this: &txtar.Archive{},
+			that: &txtar.Archive{},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			test.Equal(t, txtar.Equal(tt.this, tt.that), tt.want)
 		})
 	}
 }

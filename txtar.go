@@ -61,8 +61,6 @@ import (
 	"strings"
 )
 
-// TODO(@FollowTheProcess): Iterator over the file names and contents
-// TODO(@FollowTheProcess): An Equal method for comparison in tests
 // TODO(@FollowTheProcess): A method for writing to a file
 
 var (
@@ -84,12 +82,18 @@ type Archive struct {
 }
 
 // Comment returns the top level archive comment.
-func (a Archive) Comment() string {
+func (a *Archive) Comment() string {
+	if a == nil {
+		return ""
+	}
 	return a.comment
 }
 
 // Has returns whether the archive contains a file with the given name.
-func (a Archive) Has(name string) bool {
+func (a *Archive) Has(name string) bool {
+	if a == nil {
+		return false
+	}
 	name = strings.TrimSpace(name)
 	_, exists := a.files[name]
 	return exists
@@ -103,6 +107,9 @@ func (a Archive) Has(name string) bool {
 // The file contents will have leading and trailing whitespace trimmed so that
 // formatting can be kept consistent when parsing and serialising an archive.
 func (a *Archive) Add(name string, contents []byte) error {
+	if a == nil {
+		return errors.New("Add called on a nil Archive")
+	}
 	name = strings.TrimSpace(name)
 	if _, exists := a.files[name]; exists {
 		return fmt.Errorf("file with name %s already exists in archive", name)
@@ -117,7 +124,10 @@ func (a *Archive) Add(name string, contents []byte) error {
 // Read returns the contents of the given file from the archive.
 //
 // If the file is not in the archive, an error will be returned.
-func (a Archive) Read(name string) ([]byte, error) {
+func (a *Archive) Read(name string) ([]byte, error) {
+	if a == nil {
+		return nil, errors.New("Read called on a nil Archive")
+	}
 	name = strings.TrimSpace(name)
 	contents, exists := a.files[name]
 	if !exists {
@@ -130,12 +140,18 @@ func (a Archive) Read(name string) ([]byte, error) {
 //
 // If the file does not exist, Delete is a no-op.
 func (a *Archive) Delete(name string) {
+	if a == nil {
+		return
+	}
 	name = strings.TrimSpace(name)
 	delete(a.files, name)
 }
 
 // Size returns the number of files stored in the archive.
-func (a Archive) Size() int {
+func (a *Archive) Size() int {
+	if a == nil {
+		return 0
+	}
 	return len(a.files)
 }
 
@@ -143,7 +159,11 @@ func (a Archive) Size() int {
 // it to print itself.
 //
 // The files will be printed sorted by filename.
-func (a Archive) String() string {
+func (a *Archive) String() string {
+	if a == nil {
+		return ""
+	}
+
 	s := &strings.Builder{}
 
 	if a.comment != "" {
@@ -178,8 +198,11 @@ func (a Archive) String() string {
 //
 // The order of iteration is non-deterministic, if order is required the caller
 // must collect and sort the results.
-func (a Archive) Files() iter.Seq2[string, []byte] {
+func (a *Archive) Files() iter.Seq2[string, []byte] {
 	return func(yield func(string, []byte) bool) {
+		if a == nil {
+			return
+		}
 		for file, contents := range a.files {
 			if !yield(file, contents) {
 				return
@@ -255,6 +278,47 @@ func ParseFile(file string) (*Archive, error) {
 	}
 
 	return Parse(contents)
+}
+
+// Equal returns whether two archives should be considered equal.
+//
+// An archive is considered equal to another if they have the same comment
+// and the same files, or they are both nil pointers.
+//
+// Otherwise they are considered not equal.
+func Equal(a, b *Archive) bool {
+	// Mirroring the behaviour of maps.Equal, two nil maps report true
+	if (a == nil) && (b == nil) {
+		return true
+	}
+
+	// Can't go any further without bailing if one is nil because
+	// it will panic as soon as we implicitly dereference the pointer
+	// by calling .comment, .files etc.
+	if a == nil || b == nil {
+		return false
+	}
+
+	if a.comment != b.comment {
+		return false
+	}
+
+	if len(a.files) != len(b.files) {
+		return false
+	}
+
+	for file, aContents := range a.files {
+		bContents, exists := b.files[file]
+		if !exists {
+			return false
+		}
+
+		if !bytes.Equal(aContents, bContents) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // Below is verbatim the parser from the original package, the only exception being we don't need fixNL
