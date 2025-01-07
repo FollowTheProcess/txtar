@@ -571,7 +571,7 @@ func TestParseValid(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			path := filepath.Join(test.Data(t), "TestParse", "valid", tt.name)
+			path := filepath.Join("testdata", "TestParse", "valid", tt.name)
 			file, err := os.Open(path)
 			test.Ok(t, err)
 			defer file.Close()
