@@ -574,6 +574,7 @@ func TestParseValid(t *testing.T) {
 			path := filepath.Join("testdata", "TestParse", "valid", tt.name)
 			file, err := os.Open(path)
 			test.Ok(t, err)
+
 			defer file.Close()
 
 			archive, err := txtar.Parse(file)
@@ -719,6 +720,7 @@ func TestDump(t *testing.T) {
 
 func TestDumpNilSafe(t *testing.T) {
 	var archive *txtar.Archive
+
 	buf := &bytes.Buffer{}
 	err := txtar.Dump(buf, archive)
 	test.Err(t, err)
@@ -728,6 +730,7 @@ func TestDumpNilSafe(t *testing.T) {
 // returning a byte slice.
 func clean(data []byte) []byte {
 	data = bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n"))
+
 	return bytes.TrimSpace(data)
 }
 

@@ -14,6 +14,7 @@ type Option func(*Archive) error
 func WithComment(comment string) Option {
 	return func(a *Archive) error {
 		a.comment = strings.TrimSpace(comment)
+
 		return nil
 	}
 }
