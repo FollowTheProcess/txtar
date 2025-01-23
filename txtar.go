@@ -84,6 +84,7 @@ func (a *Archive) Comment() string {
 	if a == nil {
 		return ""
 	}
+
 	return a.comment
 }
 
@@ -92,8 +93,10 @@ func (a *Archive) Has(name string) bool {
 	if a == nil {
 		return false
 	}
+
 	name = strings.TrimSpace(name)
 	_, exists := a.files[name]
+
 	return exists
 }
 
@@ -108,10 +111,12 @@ func (a *Archive) Add(name string, contents []byte) error {
 	if a == nil {
 		return errors.New("Add called on a nil Archive")
 	}
+
 	name = strings.TrimSpace(name)
 	contents = bytes.TrimSpace(contents)
 
 	a.files[name] = contents
+
 	return nil
 }
 
@@ -122,11 +127,14 @@ func (a *Archive) Read(name string) ([]byte, error) {
 	if a == nil {
 		return nil, errors.New("Read called on a nil Archive")
 	}
+
 	name = strings.TrimSpace(name)
 	contents, exists := a.files[name]
+
 	if !exists {
 		return nil, fmt.Errorf("file %s not contained in the archive", name)
 	}
+
 	return contents, nil
 }
 
@@ -137,6 +145,7 @@ func (a *Archive) Delete(name string) {
 	if a == nil {
 		return
 	}
+
 	name = strings.TrimSpace(name)
 	delete(a.files, name)
 }
@@ -146,6 +155,7 @@ func (a *Archive) Size() int {
 	if a == nil {
 		return 0
 	}
+
 	return len(a.files)
 }
 
@@ -175,6 +185,7 @@ func (a *Archive) String() string {
 	for name := range a.files {
 		names = append(names, name)
 	}
+
 	slices.Sort(names)
 
 	for _, name := range names {
@@ -197,6 +208,7 @@ func (a *Archive) Files() iter.Seq2[string, []byte] {
 		if a == nil {
 			return
 		}
+
 		for file, contents := range a.files {
 			if !yield(file, contents) {
 				return
@@ -255,10 +267,12 @@ func Parse(r io.Reader) (*Archive, error) {
 	if data == nil {
 		return nil, errors.New("Parse: unterminated file marker")
 	}
+
 	archive.comment = string(bytes.TrimSpace(comment))
 
 	for name != "" {
 		fileName := name // Copy of the "before" filename
+
 		var contents []byte
 		contents, name, data = findFileMarker(data)
 		archive.files[fileName] = bytes.TrimSpace(contents)
@@ -272,7 +286,9 @@ func Dump(w io.Writer, archive *Archive) error {
 	if archive == nil {
 		return errors.New("Dump: archive was nil")
 	}
+
 	_, err := w.Write([]byte(archive.String()))
+
 	return err
 }
 
@@ -326,14 +342,17 @@ func Equal(a, b *Archive) bool {
 // If there is no next marker, findFileMarker returns before = fixNL(data), name = "", after = nil.
 func findFileMarker(data []byte) (before []byte, name string, after []byte) {
 	var i int
+
 	for {
 		if name, after = isMarker(data[i:]); name != "" {
 			return data[:i], name, after
 		}
+
 		j := bytes.Index(data[i:], newlineMarker)
 		if j < 0 {
 			return data, "", nil
 		}
+
 		i += j + 1 // positioned at start of new possible marker
 	}
 }
@@ -345,11 +364,14 @@ func isMarker(data []byte) (name string, after []byte) {
 	if !bytes.HasPrefix(data, marker) {
 		return "", nil
 	}
+
 	if i := bytes.IndexByte(data, '\n'); i >= 0 {
 		data, after = data[:i], data[i+1:]
 	}
+
 	if !(bytes.HasSuffix(data, markerEnd) && len(data) >= len(marker)+len(markerEnd)) {
 		return "", nil
 	}
+
 	return strings.TrimSpace(string(data[len(marker) : len(data)-len(markerEnd)])), after
 }
