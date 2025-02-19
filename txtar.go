@@ -57,6 +57,7 @@ import (
 	"fmt"
 	"io"
 	"iter"
+	"os"
 	"slices"
 	"strings"
 )
@@ -241,6 +242,8 @@ func New(options ...Option) (*Archive, error) {
 // Unlike the original txtar package, Parse can (and will) return an error in
 // the presence of a malformed document. We also take an [io.Reader] rather than
 // a byte slice for greater flexibility.
+//
+// For a shortcut to parse from a file see [ParseFile].
 func Parse(r io.Reader) (*Archive, error) {
 	data, err := io.ReadAll(r)
 	if err != nil {
@@ -278,6 +281,18 @@ func Parse(r io.Reader) (*Archive, error) {
 	}
 
 	return archive, nil
+}
+
+// ParseFile is a convenience wrapper around [Parse] when reading an
+// archive from a File.
+func ParseFile(name string) (*Archive, error) {
+	file, err := os.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	return Parse(file)
 }
 
 // Dump writes the [Archive] to w in it's serialised representation.

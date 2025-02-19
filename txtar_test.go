@@ -594,6 +594,69 @@ func TestParseValid(t *testing.T) {
 	}
 }
 
+func TestParseFileValid(t *testing.T) {
+	tests := []struct {
+		files   map[string]string // The expected files that should exist in the parsed archive
+		name    string            // Filename of the input file (relative to Testdata/TestParse)
+		comment string            // Expected top level comment of the archive
+	}{
+		{
+			name:    "one_file.txtar",
+			comment: "",
+			files: map[string]string{
+				"file1.txt": "file1 contents\n",
+			},
+		},
+		{
+			name:    "one_file_with_comment.txtar",
+			comment: "I'm a top level comment",
+			files: map[string]string{
+				"file1.txt": "file1 contents\n",
+			},
+		},
+		{
+			name:    "multiple_files.txtar",
+			comment: "I'm a top level comment",
+			files: map[string]string{
+				"file1.txt": "file1 contents\n",
+				"file2.txt": "file2 contents\n",
+				"file3.txt": "file3 contents\n",
+				"file4.txt": "file4 contents\n",
+			},
+		},
+		{
+			name:    "multiple_files_whitespace.txtar",
+			comment: "I'm a top level comment",
+			files: map[string]string{
+				"file1.txt": "file1 contents\n",
+				"file2.txt": "file2 contents\n",
+				"file3.txt": "file3 contents\n",
+				"file4.txt": "file4 contents\n",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path := filepath.Join("testdata", "TestParse", "valid", tt.name)
+
+			archive, err := txtar.ParseFile(path)
+			test.Ok(t, err) // Parse returned an unexpected error
+
+			test.Equal(t, archive.Comment(), tt.comment) // Comment did not match expected
+
+			for file, contents := range tt.files {
+				test.True(t, archive.Has(file), test.Context("Archive was missing %s", file))
+
+				got, err := archive.Read(file)
+				test.Ok(t, err)
+
+				test.Equal(t, string(got), contents, test.Context("Contents differed"))
+			}
+		})
+	}
+}
+
 func TestParseInvalid(t *testing.T) {
 	pattern := filepath.Join("testdata", "TestParse", "invalid", "*.txtar")
 	files, err := filepath.Glob(pattern)
