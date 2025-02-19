@@ -115,7 +115,7 @@ func (a *Archive) Add(name string, contents []byte) error {
 	name = strings.TrimSpace(name)
 	contents = bytes.TrimSpace(contents)
 
-	a.files[name] = contents
+	a.files[name] = fixNL(contents)
 
 	return nil
 }
@@ -193,7 +193,6 @@ func (a *Archive) String() string {
 		s.WriteString(name)
 		s.WriteString(" --\n")
 		s.Write(a.files[name])
-		s.WriteByte('\n')
 	}
 
 	return s.String()
@@ -275,7 +274,7 @@ func Parse(r io.Reader) (*Archive, error) {
 
 		var contents []byte
 		contents, name, data = findFileMarker(data)
-		archive.files[fileName] = bytes.TrimSpace(contents)
+		archive.files[fileName] = fixNL(bytes.TrimSpace(contents))
 	}
 
 	return archive, nil
@@ -374,4 +373,17 @@ func isMarker(data []byte) (name string, after []byte) {
 	}
 
 	return strings.TrimSpace(string(data[len(marker) : len(data)-len(markerEnd)])), after
+}
+
+// If data is empty or ends in \n, fixNL returns data.
+// Otherwise fixNL returns a new slice consisting of data with a final \n added.
+func fixNL(data []byte) []byte {
+	if len(data) == 0 || data[len(data)-1] == '\n' {
+		return data
+	}
+	d := make([]byte, len(data)+1)
+	copy(d, data)
+	d[len(data)] = '\n'
+
+	return d
 }

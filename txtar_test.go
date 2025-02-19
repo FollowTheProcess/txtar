@@ -164,7 +164,7 @@ func TestArchiveAddDuplicate(t *testing.T) {
 
 	contents, err := archive.Read("file1")
 	test.Ok(t, err)
-	test.Equal(t, string(contents), "some more stuff")
+	test.Equal(t, string(contents), "some more stuff\n")
 }
 
 func TestArchiveHas(t *testing.T) {
@@ -240,7 +240,7 @@ func TestArchiveRead(t *testing.T) {
 				txtar.WithFile("exists.txt", []byte("some stuff here")),
 			},
 			files: map[string]string{
-				"exists.txt": "some stuff here",
+				"exists.txt": "some stuff here\n",
 			},
 			wantErr: false,
 		},
@@ -537,34 +537,34 @@ func TestParseValid(t *testing.T) {
 			name:    "one_file.txtar",
 			comment: "",
 			files: map[string]string{
-				"file1.txt": "file1 contents",
+				"file1.txt": "file1 contents\n",
 			},
 		},
 		{
 			name:    "one_file_with_comment.txtar",
 			comment: "I'm a top level comment",
 			files: map[string]string{
-				"file1.txt": "file1 contents",
+				"file1.txt": "file1 contents\n",
 			},
 		},
 		{
 			name:    "multiple_files.txtar",
 			comment: "I'm a top level comment",
 			files: map[string]string{
-				"file1.txt": "file1 contents",
-				"file2.txt": "file2 contents",
-				"file3.txt": "file3 contents",
-				"file4.txt": "file4 contents",
+				"file1.txt": "file1 contents\n",
+				"file2.txt": "file2 contents\n",
+				"file3.txt": "file3 contents\n",
+				"file4.txt": "file4 contents\n",
 			},
 		},
 		{
 			name:    "multiple_files_whitespace.txtar",
 			comment: "I'm a top level comment",
 			files: map[string]string{
-				"file1.txt": "file1 contents",
-				"file2.txt": "file2 contents",
-				"file3.txt": "file3 contents",
-				"file4.txt": "file4 contents",
+				"file1.txt": "file1 contents\n",
+				"file2.txt": "file2 contents\n",
+				"file3.txt": "file3 contents\n",
+				"file4.txt": "file4 contents\n",
 			},
 		},
 	}
@@ -583,12 +583,12 @@ func TestParseValid(t *testing.T) {
 			test.Equal(t, archive.Comment(), tt.comment) // Comment did not match expected
 
 			for file, contents := range tt.files {
-				test.True(t, archive.Has(file)) // Archive was missing file
+				test.True(t, archive.Has(file), test.Context("Archive was missing %s", file))
 
 				got, err := archive.Read(file)
 				test.Ok(t, err)
 
-				test.Equal(t, string(got), contents) // File contents differed from expected
+				test.Equal(t, string(got), contents, test.Context("Contents differed"))
 			}
 		})
 	}
@@ -655,11 +655,11 @@ func TestFiles(t *testing.T) {
 
 	files := maps.Collect(archive.Files())
 
-	test.Equal(t, len(files), 4)                         // Wrong number of files from the iterator
-	test.Equal(t, string(files["file1"]), "some stuff")  // Wrong contents for file1
-	test.Equal(t, string(files["file2"]), "file2 stuff") // Wrong contents for file2
-	test.Equal(t, string(files["file3"]), "file3 stuff") // Wrong contents for file3
-	test.Equal(t, string(files["file4"]), "file4 stuff") // Wrong contents for file4
+	test.Equal(t, len(files), 4, test.Context("Wrong number of files from the iterator"))
+	test.Equal(t, string(files["file1"]), "some stuff\n", test.Context("Wrong contents for file1"))
+	test.Equal(t, string(files["file2"]), "file2 stuff\n", test.Context("Wrong contents for file2"))
+	test.Equal(t, string(files["file3"]), "file3 stuff\n", test.Context("Wrong contents for file3"))
+	test.Equal(t, string(files["file4"]), "file4 stuff\n", test.Context("Wrong contents for file4"))
 }
 
 func TestCompat(t *testing.T) {
