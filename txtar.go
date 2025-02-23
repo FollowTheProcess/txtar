@@ -101,16 +101,16 @@ func (a *Archive) Has(name string) bool {
 	return exists
 }
 
-// Add adds a new named file with contents to the archive.
+// Write writes a named file with contents to the archive.
 //
-// Calling Add with the name of a file that already exists in the archive will
+// Calling Write with the name of a file that already exists in the archive will
 // overwrite the contents of that file.
 //
 // The file contents will have leading and trailing whitespace trimmed so that
 // formatting can be kept consistent when parsing and serialising an archive.
-func (a *Archive) Add(name string, contents []byte) error {
+func (a *Archive) Write(name string, contents []byte) error {
 	if a == nil {
-		return errors.New("Add called on a nil Archive")
+		return errors.New("Write called on a nil Archive")
 	}
 
 	name = strings.TrimSpace(name)
