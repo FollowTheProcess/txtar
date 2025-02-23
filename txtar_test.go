@@ -129,7 +129,7 @@ func TestArchiveAdd(t *testing.T) {
 			test.Ok(t, err)
 
 			for _, file := range tt.files {
-				err := archive.Add(file, []byte("some stuff"))
+				err := archive.Write(file, []byte("some stuff"))
 				test.Ok(t, err)
 			}
 		})
@@ -140,7 +140,7 @@ func TestArchiveNilSafe(t *testing.T) {
 	var archive *txtar.Archive
 
 	// Everything below must not panic
-	err := archive.Add("file", []byte("stuff here"))
+	err := archive.Write("file", []byte("stuff here"))
 	test.Err(t, err)
 	test.Equal(t, archive.Comment(), "")
 	test.False(t, archive.Has("file"))
@@ -159,8 +159,8 @@ func TestArchiveAddDuplicate(t *testing.T) {
 	archive, err := txtar.New()
 	test.Ok(t, err)
 
-	test.Ok(t, archive.Add("file1", []byte("some stuff")))
-	test.Ok(t, archive.Add("file1", []byte("some more stuff")))
+	test.Ok(t, archive.Write("file1", []byte("some stuff")))
+	test.Ok(t, archive.Write("file1", []byte("some more stuff")))
 
 	contents, err := archive.Read("file1")
 	test.Ok(t, err)
@@ -284,7 +284,7 @@ func TestArchiveDelete(t *testing.T) {
 
 		test.False(t, archive.Has("present")) // File "present" should not yet be present
 
-		err = archive.Add("present", []byte("present stuff"))
+		err = archive.Write("present", []byte("present stuff"))
 		test.Ok(t, err)
 
 		test.True(t, archive.Has("present")) // File "present" should exist

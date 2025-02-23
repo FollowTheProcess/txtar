@@ -28,6 +28,6 @@ func WithComment(comment string) Option {
 // in the archive will cause [New] to return an error.
 func WithFile(name string, contents []byte) Option {
 	return func(a *Archive) error {
-		return a.Add(name, contents)
+		return a.Write(name, contents)
 	}
 }
