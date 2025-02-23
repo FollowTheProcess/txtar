@@ -306,6 +306,15 @@ func Dump(w io.Writer, archive *Archive) error {
 	return err
 }
 
+// DumpFile is a convenience wrapper around [Dump] when serialising an
+// archive to a file.
+//
+// If the file does not exist, it is created.
+func DumpFile(name string, archive *Archive) error {
+	const filePerms = 0o644
+	return os.WriteFile(name, []byte(archive.String()), filePerms)
+}
+
 // Equal returns whether two archives should be considered equal.
 //
 // An archive is considered equal to another if they have the same comment
