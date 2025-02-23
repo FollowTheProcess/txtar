@@ -99,7 +99,7 @@ func TestWithFiles(t *testing.T) {
 	}
 }
 
-func TestArchiveAdd(t *testing.T) {
+func TestArchiveWrite(t *testing.T) {
 	tests := []struct {
 		name  string   // Name of the test case
 		files []string // List of files to add (contents don't matter)
@@ -155,7 +155,7 @@ func TestArchiveNilSafe(t *testing.T) {
 	maps.Collect(archive.Files())
 }
 
-func TestArchiveAddDuplicate(t *testing.T) {
+func TestArchiveWriteDuplicate(t *testing.T) {
 	archive, err := txtar.New()
 	test.Ok(t, err)
 
@@ -779,6 +779,29 @@ func TestDump(t *testing.T) {
 	test.Ok(t, err)
 
 	test.Equal(t, buf.String(), archive.String())
+}
+
+func TestDumpFile(t *testing.T) {
+	archive, err := txtar.New(
+		txtar.WithComment("A top level comment"),
+		txtar.WithFile("file1", []byte("file 1 contents")),
+		txtar.WithFile("file2", []byte("file 2 contents")),
+		txtar.WithFile("file3", []byte("file 3 contents")),
+	)
+
+	test.Ok(t, err)
+
+	tmp, err := os.CreateTemp(t.TempDir(), "*.txtar")
+	test.Ok(t, err)
+	test.Ok(t, tmp.Close())
+
+	err = txtar.DumpFile(tmp.Name(), archive)
+	test.Ok(t, err)
+
+	got, err := os.ReadFile(tmp.Name())
+	test.Ok(t, err)
+
+	test.Diff(t, string(got), archive.String())
 }
 
 func TestDumpNilSafe(t *testing.T) {
