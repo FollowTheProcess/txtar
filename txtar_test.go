@@ -147,7 +147,7 @@ func TestArchiveNilSafe(t *testing.T) {
 
 	contents, err := archive.Read("file")
 	test.Err(t, err)
-	test.EqualFunc(t, contents, nil, bytes.Equal)
+	test.Equal(t, contents, "")
 
 	test.Equal(t, archive.Size(), 0)
 	test.Equal(t, archive.String(), "")
@@ -164,7 +164,7 @@ func TestArchiveWriteDuplicate(t *testing.T) {
 
 	contents, err := archive.Read("file1")
 	test.Ok(t, err)
-	test.Equal(t, string(contents), "some more stuff\n")
+	test.Equal(t, contents, "some more stuff\n")
 }
 
 func TestArchiveHas(t *testing.T) {
@@ -264,7 +264,7 @@ func TestArchiveRead(t *testing.T) {
 			got, err := archive.Read(name)
 			test.WantErr(t, err, tt.wantErr)
 
-			test.Equal(t, string(got), want)
+			test.Equal(t, got, want)
 		}
 	}
 }
@@ -588,7 +588,7 @@ func TestParseValid(t *testing.T) {
 				got, err := archive.Read(file)
 				test.Ok(t, err)
 
-				test.Equal(t, string(got), contents, test.Context("Contents differed"))
+				test.Equal(t, got, contents, test.Context("Contents differed"))
 			}
 		})
 	}
@@ -651,7 +651,7 @@ func TestParseFileValid(t *testing.T) {
 				got, err := archive.Read(file)
 				test.Ok(t, err)
 
-				test.Equal(t, string(got), contents, test.Context("Contents differed"))
+				test.Equal(t, got, contents, test.Context("Contents differed"))
 			}
 		})
 	}
@@ -719,10 +719,10 @@ func TestFiles(t *testing.T) {
 	files := maps.Collect(archive.Files())
 
 	test.Equal(t, len(files), 4, test.Context("Wrong number of files from the iterator"))
-	test.Equal(t, string(files["file1"]), "some stuff\n", test.Context("Wrong contents for file1"))
-	test.Equal(t, string(files["file2"]), "file2 stuff\n", test.Context("Wrong contents for file2"))
-	test.Equal(t, string(files["file3"]), "file3 stuff\n", test.Context("Wrong contents for file3"))
-	test.Equal(t, string(files["file4"]), "file4 stuff\n", test.Context("Wrong contents for file4"))
+	test.Equal(t, files["file1"], "some stuff\n", test.Context("Wrong contents for file1"))
+	test.Equal(t, files["file2"], "file2 stuff\n", test.Context("Wrong contents for file2"))
+	test.Equal(t, files["file3"], "file3 stuff\n", test.Context("Wrong contents for file3"))
+	test.Equal(t, files["file4"], "file4 stuff\n", test.Context("Wrong contents for file4"))
 }
 
 func TestCompat(t *testing.T) {
@@ -747,7 +747,7 @@ func TestCompat(t *testing.T) {
 
 			test.Equal( // Comment mismatch between x/tools/txtar and this package
 				t,
-				cleanString(goArchive.Comment),
+				clean(string(goArchive.Comment)),
 				strings.TrimSpace(ourArchive.Comment()),
 			)
 
@@ -758,7 +758,7 @@ func TestCompat(t *testing.T) {
 				ourData, err := ourArchive.Read(file.Name)
 				test.Ok(t, err) // Could not read data
 
-				test.Equal(t, cleanString(ourData), cleanString(file.Data)) // File data mismatch
+				test.Equal(t, clean(ourData), clean(string(file.Data))) // File data mismatch
 			}
 		})
 	}
@@ -814,14 +814,8 @@ func TestDumpNilSafe(t *testing.T) {
 
 // clean de-windows's everything and trims all leading and trailing whitespace
 // returning a byte slice.
-func clean(data []byte) []byte {
-	data = bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n"))
+func clean(data string) string {
+	data = strings.ReplaceAll(data, "\r\n", "\n")
 
-	return bytes.TrimSpace(data)
-}
-
-// cleanString de-windows's everything and trims all leading and trailing whitespace
-// returning the string for comparison.
-func cleanString(data []byte) string {
-	return string(clean(data))
+	return strings.TrimSpace(data)
 }

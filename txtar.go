@@ -17,6 +17,7 @@
 //   - Parsing an [Archive] from it's serialised format *can* error in the presence of a malformed document
 //   - [Parse] accepts an [io.Reader] rather than a []byte
 //   - [Dump] is provided to serialise an [Archive] to an [io.Writer]
+//   - File contents are represented as strings, not []byte for a more convenient format
 //
 // # Original Package Documentation
 //
@@ -76,7 +77,7 @@ var (
 // An Archive is not safe for concurrent access across multiple goroutines, the caller
 // is responsible for synchronising concurrent access.
 type Archive struct {
-	files   map[string][]byte // The files contained in the archive, map of name to contents
+	files   map[string]string // The files contained in the archive, map of name to contents
 	comment string            // The top level archive comment section
 }
 
@@ -116,7 +117,7 @@ func (a *Archive) Write(name string, contents []byte) error {
 	name = strings.TrimSpace(name)
 	contents = bytes.TrimSpace(contents)
 
-	a.files[name] = fixNL(contents)
+	a.files[name] = string(fixNL(contents))
 
 	return nil
 }
@@ -124,16 +125,16 @@ func (a *Archive) Write(name string, contents []byte) error {
 // Read returns the contents of the given file from the archive.
 //
 // If the file is not in the archive, an error will be returned.
-func (a *Archive) Read(name string) ([]byte, error) {
+func (a *Archive) Read(name string) (string, error) {
 	if a == nil {
-		return nil, errors.New("Read called on a nil Archive")
+		return "", errors.New("Read called on a nil Archive")
 	}
 
 	name = strings.TrimSpace(name)
 	contents, exists := a.files[name]
 
 	if !exists {
-		return nil, fmt.Errorf("file %s not contained in the archive", name)
+		return "", fmt.Errorf("file %s not contained in the archive", name)
 	}
 
 	return contents, nil
@@ -193,7 +194,7 @@ func (a *Archive) String() string {
 		s.WriteString("-- ")
 		s.WriteString(name)
 		s.WriteString(" --\n")
-		s.Write(a.files[name])
+		s.WriteString(a.files[name])
 	}
 
 	return s.String()
@@ -203,8 +204,8 @@ func (a *Archive) String() string {
 //
 // The order of iteration is non-deterministic, if order is required the caller
 // must collect and sort the results.
-func (a *Archive) Files() iter.Seq2[string, []byte] {
-	return func(yield func(string, []byte) bool) {
+func (a *Archive) Files() iter.Seq2[string, string] {
+	return func(yield func(string, string) bool) {
 		if a == nil {
 			return
 		}
@@ -220,7 +221,7 @@ func (a *Archive) Files() iter.Seq2[string, []byte] {
 // New returns a new [Archive], applying any number of initialisation options.
 func New(options ...Option) (*Archive, error) {
 	archive := &Archive{
-		files: make(map[string][]byte),
+		files: make(map[string]string),
 	}
 
 	// Bubble up all the errors at once rather than forcing callers
@@ -262,7 +263,7 @@ func Parse(r io.Reader) (*Archive, error) {
 	data = bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n"))
 
 	archive := &Archive{
-		files: make(map[string][]byte),
+		files: make(map[string]string),
 	}
 
 	comment, name, data := findFileMarker(data)
@@ -277,7 +278,7 @@ func Parse(r io.Reader) (*Archive, error) {
 
 		var contents []byte
 		contents, name, data = findFileMarker(data)
-		archive.files[fileName] = fixNL(bytes.TrimSpace(contents))
+		archive.files[fileName] = string(fixNL(bytes.TrimSpace(contents)))
 	}
 
 	return archive, nil
@@ -348,7 +349,7 @@ func Equal(a, b *Archive) bool {
 			return false
 		}
 
-		if !bytes.Equal(aContents, bContents) {
+		if aContents != bContents {
 			return false
 		}
 	}
