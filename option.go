@@ -26,7 +26,7 @@ func WithComment(comment string) Option {
 //
 // File names must be unique in an archive, adding a file whose name is already present
 // in the archive will cause [New] to return an error.
-func WithFile(name string, contents []byte) Option {
+func WithFile(name, contents string) Option {
 	return func(a *Archive) error {
 		return a.Write(name, contents)
 	}

@@ -109,15 +109,15 @@ func (a *Archive) Has(name string) bool {
 //
 // The file contents will have leading and trailing whitespace trimmed so that
 // formatting can be kept consistent when parsing and serialising an archive.
-func (a *Archive) Write(name string, contents []byte) error {
+func (a *Archive) Write(name, contents string) error {
 	if a == nil {
 		return errors.New("Write called on a nil Archive")
 	}
 
 	name = strings.TrimSpace(name)
-	contents = bytes.TrimSpace(contents)
+	contents = strings.TrimSpace(contents)
 
-	a.files[name] = string(fixNL(contents))
+	a.files[name] = fixNL(contents)
 
 	return nil
 }
@@ -278,7 +278,7 @@ func Parse(r io.Reader) (*Archive, error) {
 
 		var contents []byte
 		contents, name, data = findFileMarker(data)
-		archive.files[fileName] = string(fixNL(bytes.TrimSpace(contents)))
+		archive.files[fileName] = fixNL(strings.TrimSpace(string(contents)))
 	}
 
 	return archive, nil
@@ -402,7 +402,7 @@ func isMarker(data []byte) (name string, after []byte) {
 
 // If data is empty or ends in \n, fixNL returns data.
 // Otherwise fixNL returns a new slice consisting of data with a final \n added.
-func fixNL(data []byte) []byte {
+func fixNL(data string) string {
 	if len(data) == 0 || data[len(data)-1] == '\n' {
 		return data
 	}
@@ -410,5 +410,5 @@ func fixNL(data []byte) []byte {
 	copy(d, data)
 	d[len(data)] = '\n'
 
-	return d
+	return string(d)
 }
