@@ -57,7 +57,7 @@ func TestWithFiles(t *testing.T) {
 		{
 			name: "single file",
 			options: []txtar.Option{
-				txtar.WithFile("file1", []byte("some stuff")),
+				txtar.WithFile("file1", "some stuff"),
 			},
 			files:   []string{"file1"},
 			wantErr: false,
@@ -65,11 +65,11 @@ func TestWithFiles(t *testing.T) {
 		{
 			name: "multiple unique files",
 			options: []txtar.Option{
-				txtar.WithFile("file1", []byte("some stuff")),
-				txtar.WithFile("file2", []byte("some stuff")),
-				txtar.WithFile("file3", []byte("some stuff")),
-				txtar.WithFile("file4", []byte("some stuff")),
-				txtar.WithFile("file5", []byte("some stuff")),
+				txtar.WithFile("file1", "some stuff"),
+				txtar.WithFile("file2", "some stuff"),
+				txtar.WithFile("file3", "some stuff"),
+				txtar.WithFile("file4", "some stuff"),
+				txtar.WithFile("file5", "some stuff"),
 			},
 			files:   []string{"file1", "file2", "file3", "file4", "file5"},
 			wantErr: false,
@@ -77,8 +77,8 @@ func TestWithFiles(t *testing.T) {
 		{
 			name: "duplicate file",
 			options: []txtar.Option{
-				txtar.WithFile("file1", []byte("some stuff")),
-				txtar.WithFile("file1", []byte("some different stuff")),
+				txtar.WithFile("file1", "some stuff"),
+				txtar.WithFile("file1", "some different stuff"),
 			},
 			files:   []string{"file1"},
 			wantErr: false,
@@ -129,7 +129,7 @@ func TestArchiveWrite(t *testing.T) {
 			test.Ok(t, err)
 
 			for _, file := range tt.files {
-				err := archive.Write(file, []byte("some stuff"))
+				err := archive.Write(file, "some stuff")
 				test.Ok(t, err)
 			}
 		})
@@ -140,7 +140,7 @@ func TestArchiveNilSafe(t *testing.T) {
 	var archive *txtar.Archive
 
 	// Everything below must not panic
-	err := archive.Write("file", []byte("stuff here"))
+	err := archive.Write("file", "stuff here")
 	test.Err(t, err)
 	test.Equal(t, archive.Comment(), "")
 	test.False(t, archive.Has("file"))
@@ -159,8 +159,8 @@ func TestArchiveWriteDuplicate(t *testing.T) {
 	archive, err := txtar.New()
 	test.Ok(t, err)
 
-	test.Ok(t, archive.Write("file1", []byte("some stuff")))
-	test.Ok(t, archive.Write("file1", []byte("some more stuff")))
+	test.Ok(t, archive.Write("file1", "some stuff"))
+	test.Ok(t, archive.Write("file1", "some more stuff"))
 
 	contents, err := archive.Read("file1")
 	test.Ok(t, err)
@@ -180,7 +180,7 @@ func TestArchiveHas(t *testing.T) {
 		},
 		{
 			name:    "missing",
-			options: []txtar.Option{txtar.WithFile("afile", []byte("some stuff"))},
+			options: []txtar.Option{txtar.WithFile("afile", "some stuff")},
 			files: map[string]bool{
 				"afile":   true,
 				"another": false,
@@ -189,8 +189,8 @@ func TestArchiveHas(t *testing.T) {
 		{
 			name: "both",
 			options: []txtar.Option{
-				txtar.WithFile("afile", []byte("some stuff")),
-				txtar.WithFile("another", []byte("moar stuff")),
+				txtar.WithFile("afile", "some stuff"),
+				txtar.WithFile("another", "moar stuff"),
 			},
 			files: map[string]bool{
 				"afile":   true,
@@ -227,7 +227,7 @@ func TestArchiveRead(t *testing.T) {
 		{
 			name: "missing",
 			options: []txtar.Option{
-				txtar.WithFile("exists.txt", []byte("some stuff here")),
+				txtar.WithFile("exists.txt", "some stuff here"),
 			},
 			files: map[string]string{
 				"missing.txt": "",
@@ -237,7 +237,7 @@ func TestArchiveRead(t *testing.T) {
 		{
 			name: "exists",
 			options: []txtar.Option{
-				txtar.WithFile("exists.txt", []byte("some stuff here")),
+				txtar.WithFile("exists.txt", "some stuff here"),
 			},
 			files: map[string]string{
 				"exists.txt": "some stuff here\n",
@@ -247,7 +247,7 @@ func TestArchiveRead(t *testing.T) {
 		{
 			name: "exists but empty",
 			options: []txtar.Option{
-				txtar.WithFile("exists.txt", nil),
+				txtar.WithFile("exists.txt", ""),
 			},
 			files: map[string]string{
 				"exists.txt": "",
@@ -284,7 +284,7 @@ func TestArchiveDelete(t *testing.T) {
 
 		test.False(t, archive.Has("present")) // File "present" should not yet be present
 
-		err = archive.Write("present", []byte("present stuff"))
+		err = archive.Write("present", "present stuff")
 		test.Ok(t, err)
 
 		test.True(t, archive.Has("present")) // File "present" should exist
@@ -314,7 +314,7 @@ func TestArchiveString(t *testing.T) {
 		{
 			name: "only single file",
 			options: []txtar.Option{
-				txtar.WithFile("file1.txt", []byte("file1 contents")),
+				txtar.WithFile("file1.txt", "file1 contents"),
 			},
 			want: "-- file1.txt --\nfile1 contents\n",
 		},
@@ -322,7 +322,7 @@ func TestArchiveString(t *testing.T) {
 			name: "file and comment",
 			options: []txtar.Option{
 				txtar.WithComment("A comment"),
-				txtar.WithFile("file1.txt", []byte("file1 contents")),
+				txtar.WithFile("file1.txt", "file1 contents"),
 			},
 			want: `A comment
 
@@ -334,11 +334,11 @@ file1 contents
 			name: "multiple files",
 			options: []txtar.Option{
 				txtar.WithComment("A slightly longer comment\n\nspanning several\nlines\n"),
-				txtar.WithFile("afile.txt", []byte("file1 contents")),
-				txtar.WithFile("bfile.txt", []byte("file2 contents")),
-				txtar.WithFile("dir/file3.txt", []byte("dir/file3 contents")),
-				txtar.WithFile("cfile.txt", []byte("file4 contents")),
-				txtar.WithFile("file.txt", []byte("file contents")),
+				txtar.WithFile("afile.txt", "file1 contents"),
+				txtar.WithFile("bfile.txt", "file2 contents"),
+				txtar.WithFile("dir/file3.txt", "dir/file3 contents"),
+				txtar.WithFile("cfile.txt", "file4 contents"),
+				txtar.WithFile("file.txt", "file contents"),
 			},
 			want: `A slightly longer comment
 
@@ -405,7 +405,7 @@ func TestEqual(t *testing.T) {
 			thisOptions: nil,
 			thatOptions: []txtar.Option{
 				txtar.WithComment("A comment"),
-				txtar.WithFile("file1", []byte("file1 contents")),
+				txtar.WithFile("file1", "file1 contents"),
 			},
 			want: false,
 		},
@@ -413,8 +413,8 @@ func TestEqual(t *testing.T) {
 			name: "that empty",
 			thisOptions: []txtar.Option{
 				txtar.WithComment("A comment"),
-				txtar.WithFile("file1", []byte("file1 contents")),
-				txtar.WithFile("file2", []byte("file2 contents")),
+				txtar.WithFile("file1", "file1 contents"),
+				txtar.WithFile("file2", "file2 contents"),
 			},
 			thatOptions: nil,
 			want:        false,
@@ -423,12 +423,12 @@ func TestEqual(t *testing.T) {
 			name: "different len",
 			thisOptions: []txtar.Option{
 				txtar.WithComment("A comment"),
-				txtar.WithFile("file1", []byte("file1 contents")),
-				txtar.WithFile("file2", []byte("file2 contents")),
+				txtar.WithFile("file1", "file1 contents"),
+				txtar.WithFile("file2", "file2 contents"),
 			},
 			thatOptions: []txtar.Option{
 				txtar.WithComment("A comment"),
-				txtar.WithFile("file1", []byte("file1 contents")),
+				txtar.WithFile("file1", "file1 contents"),
 			},
 			want: false,
 		},
@@ -436,25 +436,25 @@ func TestEqual(t *testing.T) {
 			name: "different filenames",
 			thisOptions: []txtar.Option{
 				txtar.WithComment("A comment"),
-				txtar.WithFile("thisfile1", []byte("file1 contents")),
-				txtar.WithFile("file2", []byte("file2 contents")),
+				txtar.WithFile("thisfile1", "file1 contents"),
+				txtar.WithFile("file2", "file2 contents"),
 			},
 			thatOptions: []txtar.Option{
 				txtar.WithComment("A comment"),
-				txtar.WithFile("thatfile1", []byte("file1 contents")),
-				txtar.WithFile("file2", []byte("file2 contents")),
+				txtar.WithFile("thatfile1", "file1 contents"),
+				txtar.WithFile("file2", "file2 contents"),
 			},
 			want: false,
 		},
 		{
 			name: "different contents",
 			thisOptions: []txtar.Option{
-				txtar.WithFile("file1", []byte("this file1 contents")),
-				txtar.WithFile("file2", []byte("this file2 contents")),
+				txtar.WithFile("file1", "this file1 contents"),
+				txtar.WithFile("file2", "this file2 contents"),
 			},
 			thatOptions: []txtar.Option{
-				txtar.WithFile("file1", []byte("that file1 contents")),
-				txtar.WithFile("file2", []byte("that file2 contents")),
+				txtar.WithFile("file1", "that file1 contents"),
+				txtar.WithFile("file2", "that file2 contents"),
 			},
 			want: false,
 		},
@@ -462,13 +462,13 @@ func TestEqual(t *testing.T) {
 			name: "equal",
 			thisOptions: []txtar.Option{
 				txtar.WithComment("A comment"),
-				txtar.WithFile("file1", []byte("file1 contents")),
-				txtar.WithFile("file2", []byte("file2 contents")),
+				txtar.WithFile("file1", "file1 contents"),
+				txtar.WithFile("file2", "file2 contents"),
 			},
 			thatOptions: []txtar.Option{
 				txtar.WithComment("A comment"),
-				txtar.WithFile("file1", []byte("file1 contents")),
-				txtar.WithFile("file2", []byte("file2 contents")),
+				txtar.WithFile("file1", "file1 contents"),
+				txtar.WithFile("file2", "file2 contents"),
 			},
 			want: true,
 		},
@@ -709,10 +709,10 @@ func TestParseStringRoundTrip(t *testing.T) {
 
 func TestFiles(t *testing.T) {
 	archive, err := txtar.New(
-		txtar.WithFile("file1", []byte("some stuff")),
-		txtar.WithFile("file2", []byte("file2 stuff")),
-		txtar.WithFile("file3", []byte("file3 stuff")),
-		txtar.WithFile("file4", []byte("file4 stuff")),
+		txtar.WithFile("file1", "some stuff"),
+		txtar.WithFile("file2", "file2 stuff"),
+		txtar.WithFile("file3", "file3 stuff"),
+		txtar.WithFile("file4", "file4 stuff"),
 	)
 	test.Ok(t, err)
 
@@ -767,9 +767,9 @@ func TestCompat(t *testing.T) {
 func TestDump(t *testing.T) {
 	archive, err := txtar.New(
 		txtar.WithComment("A top level comment"),
-		txtar.WithFile("file1", []byte("file 1 contents")),
-		txtar.WithFile("file2", []byte("file 2 contents")),
-		txtar.WithFile("file3", []byte("file 3 contents")),
+		txtar.WithFile("file1", "file 1 contents"),
+		txtar.WithFile("file2", "file 2 contents"),
+		txtar.WithFile("file3", "file 3 contents"),
 	)
 
 	test.Ok(t, err)
@@ -784,9 +784,9 @@ func TestDump(t *testing.T) {
 func TestDumpFile(t *testing.T) {
 	archive, err := txtar.New(
 		txtar.WithComment("A top level comment"),
-		txtar.WithFile("file1", []byte("file 1 contents")),
-		txtar.WithFile("file2", []byte("file 2 contents")),
-		txtar.WithFile("file3", []byte("file 3 contents")),
+		txtar.WithFile("file1", "file 1 contents"),
+		txtar.WithFile("file2", "file 2 contents"),
+		txtar.WithFile("file3", "file 3 contents"),
 	)
 
 	test.Ok(t, err)
