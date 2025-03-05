@@ -97,6 +97,8 @@ func (a *Archive) Has(name string) bool {
 		return false
 	}
 
+	a.init()
+
 	name = strings.TrimSpace(name)
 
 	return a.files.Contains(name)
@@ -114,6 +116,8 @@ func (a *Archive) Write(name, contents string) error {
 		return errors.New("Write called on a nil Archive")
 	}
 
+	a.init()
+
 	name = strings.TrimSpace(name)
 	contents = strings.TrimSpace(contents)
 
@@ -129,6 +133,8 @@ func (a *Archive) Read(name string) (string, error) {
 	if a == nil {
 		return "", errors.New("Read called on a nil Archive")
 	}
+
+	a.init()
 
 	name = strings.TrimSpace(name)
 	contents, exists := a.files.Get(name)
@@ -148,6 +154,8 @@ func (a *Archive) Delete(name string) {
 		return
 	}
 
+	a.init()
+
 	name = strings.TrimSpace(name)
 	a.files.Remove(name)
 }
@@ -157,6 +165,8 @@ func (a *Archive) Size() int {
 	if a == nil {
 		return 0
 	}
+
+	a.init()
 
 	return a.files.Size()
 }
@@ -169,6 +179,8 @@ func (a *Archive) String() string {
 	if a == nil {
 		return ""
 	}
+
+	a.init()
 
 	s := &strings.Builder{}
 
@@ -200,7 +212,16 @@ func (a *Archive) Files() iter.Seq2[string, string] {
 	if a == nil {
 		return func(yield func(string, string) bool) {}
 	}
+	a.init()
+
 	return a.files.All()
+}
+
+// init ensures the underlying map is correctly initialised.
+func (a *Archive) init() {
+	if a.files == nil {
+		a.files = orderedmap.New[string, string]()
+	}
 }
 
 // New returns a new [Archive], applying any number of initialisation options.
