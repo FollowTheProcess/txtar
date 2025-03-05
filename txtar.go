@@ -55,7 +55,6 @@ package txtar
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"iter"
 	"os"
@@ -129,9 +128,9 @@ func (a *Archive) Write(name, contents string) error {
 // Read returns the contents of the given file from the archive.
 //
 // If the file is not in the archive, an error will be returned.
-func (a *Archive) Read(name string) (string, error) {
+func (a *Archive) Read(name string) (value string, ok bool) {
 	if a == nil {
-		return "", errors.New("Read called on a nil Archive")
+		return "", false
 	}
 
 	a.init()
@@ -140,10 +139,10 @@ func (a *Archive) Read(name string) (string, error) {
 	contents, exists := a.files.Get(name)
 
 	if !exists {
-		return "", fmt.Errorf("file %s not contained in the archive", name)
+		return "", false
 	}
 
-	return contents, nil
+	return contents, true
 }
 
 // Delete removes a file from the archive.
