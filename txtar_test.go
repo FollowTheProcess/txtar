@@ -145,8 +145,8 @@ func TestArchiveNilSafe(t *testing.T) {
 	test.Equal(t, archive.Comment(), "")
 	test.False(t, archive.Has("file"))
 
-	contents, err := archive.Read("file")
-	test.Err(t, err)
+	contents, ok := archive.Read("file")
+	test.False(t, ok)
 	test.Equal(t, contents, "")
 
 	test.Equal(t, archive.Size(), 0)
@@ -162,8 +162,8 @@ func TestArchiveWriteDuplicate(t *testing.T) {
 	test.Ok(t, archive.Write("file1", "some stuff"))
 	test.Ok(t, archive.Write("file1", "some more stuff"))
 
-	contents, err := archive.Read("file1")
-	test.Ok(t, err)
+	contents, ok := archive.Read("file1")
+	test.True(t, ok)
 	test.Equal(t, contents, "some more stuff\n")
 }
 
@@ -216,13 +216,13 @@ func TestArchiveRead(t *testing.T) {
 		name    string            // Name of the test case
 		files   map[string]string // Map of <filename> -> <expected contents> to read
 		options []txtar.Option    // The options to apply to New
-		wantErr bool              // Whether Read should return an error
+		wantOk  bool              // Expected Read ok value
 	}{
 		{
 			name:    "empty",
 			options: nil,
 			files:   nil,
-			wantErr: false,
+			wantOk:  false,
 		},
 		{
 			name: "missing",
@@ -232,7 +232,7 @@ func TestArchiveRead(t *testing.T) {
 			files: map[string]string{
 				"missing.txt": "",
 			},
-			wantErr: true,
+			wantOk: false,
 		},
 		{
 			name: "exists",
@@ -242,7 +242,7 @@ func TestArchiveRead(t *testing.T) {
 			files: map[string]string{
 				"exists.txt": "some stuff here\n",
 			},
-			wantErr: false,
+			wantOk: true,
 		},
 		{
 			name: "exists but empty",
@@ -252,7 +252,7 @@ func TestArchiveRead(t *testing.T) {
 			files: map[string]string{
 				"exists.txt": "",
 			},
-			wantErr: false,
+			wantOk: true,
 		},
 	}
 
@@ -261,8 +261,8 @@ func TestArchiveRead(t *testing.T) {
 		test.Ok(t, err)
 
 		for name, want := range tt.files {
-			got, err := archive.Read(name)
-			test.WantErr(t, err, tt.wantErr)
+			got, ok := archive.Read(name)
+			test.Equal(t, ok, tt.wantOk)
 
 			test.Equal(t, got, want)
 		}
@@ -585,8 +585,8 @@ func TestParseValid(t *testing.T) {
 			for file, contents := range tt.files {
 				test.True(t, archive.Has(file), test.Context("Archive was missing %s", file))
 
-				got, err := archive.Read(file)
-				test.Ok(t, err)
+				got, ok := archive.Read(file)
+				test.True(t, ok)
 
 				test.Equal(t, got, contents, test.Context("Contents differed"))
 			}
@@ -648,8 +648,8 @@ func TestParseFileValid(t *testing.T) {
 			for file, contents := range tt.files {
 				test.True(t, archive.Has(file), test.Context("Archive was missing %s", file))
 
-				got, err := archive.Read(file)
-				test.Ok(t, err)
+				got, ok := archive.Read(file)
+				test.True(t, ok)
 
 				test.Equal(t, got, contents, test.Context("Contents differed"))
 			}
@@ -755,8 +755,8 @@ func TestCompat(t *testing.T) {
 
 			for _, file := range goArchive.Files {
 				test.True(t, ourArchive.Has(file.Name)) // This package archive missing file
-				ourData, err := ourArchive.Read(file.Name)
-				test.Ok(t, err) // Could not read data
+				ourData, ok := ourArchive.Read(file.Name)
+				test.True(t, ok) // Could not read data
 
 				test.Equal(t, clean(ourData), clean(string(file.Data))) // File data mismatch
 			}
