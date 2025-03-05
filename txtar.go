@@ -58,9 +58,8 @@ import (
 	"io"
 	"iter"
 	"os"
+	"slices"
 	"strings"
-
-	"github.com/FollowTheProcess/collections/orderedmap"
 )
 
 var (
@@ -68,6 +67,12 @@ var (
 	marker        = []byte("-- ")
 	markerEnd     = []byte(" --")
 )
+
+// A file represents a txtar archive file.
+type file struct {
+	name     string // Name of the file in the archive
+	contents string // It's contents
+}
 
 // Archive is a collection of files.
 //
@@ -77,8 +82,8 @@ var (
 // An Archive is not safe for concurrent access across multiple goroutines, the caller
 // is responsible for synchronising concurrent access.
 type Archive struct {
-	files   *orderedmap.Map[string, string] // The files contained in the archive, map of name to contents
-	comment string                          // The top level archive comment section
+	comment string
+	files   []file
 }
 
 // Comment returns the top level archive comment.
@@ -96,11 +101,15 @@ func (a *Archive) Has(name string) bool {
 		return false
 	}
 
-	a.init()
-
 	name = strings.TrimSpace(name)
 
-	return a.files.Contains(name)
+	for _, file := range a.files {
+		if file.name == name {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Write writes a named file with contents to the archive.
@@ -115,12 +124,19 @@ func (a *Archive) Write(name, contents string) error {
 		return errors.New("Write called on a nil Archive")
 	}
 
-	a.init()
-
 	name = strings.TrimSpace(name)
 	contents = strings.TrimSpace(contents)
 
-	a.files.Insert(name, fixNL(contents))
+	// Does it already exist? in which case overwrite it
+	for i := range a.files {
+		if a.files[i].name == name {
+			a.files[i] = file{name: name, contents: fixNL(contents)}
+			return nil
+		}
+	}
+
+	// If not, create it and append it
+	a.files = append(a.files, file{name: name, contents: fixNL(contents)})
 
 	return nil
 }
@@ -133,16 +149,14 @@ func (a *Archive) Read(name string) (value string, ok bool) {
 		return "", false
 	}
 
-	a.init()
-
 	name = strings.TrimSpace(name)
-	contents, exists := a.files.Get(name)
-
-	if !exists {
-		return "", false
+	for _, file := range a.files {
+		if file.name == name {
+			return file.contents, true
+		}
 	}
 
-	return contents, true
+	return "", false
 }
 
 // Delete removes a file from the archive.
@@ -153,10 +167,12 @@ func (a *Archive) Delete(name string) {
 		return
 	}
 
-	a.init()
-
 	name = strings.TrimSpace(name)
-	a.files.Remove(name)
+	if !a.Has(name) {
+		return
+	}
+
+	a.files = slices.DeleteFunc(a.files, func(f file) bool { return f.name == name })
 }
 
 // Size returns the number of files stored in the archive.
@@ -165,9 +181,7 @@ func (a *Archive) Size() int {
 		return 0
 	}
 
-	a.init()
-
-	return a.files.Size()
+	return len(a.files)
 }
 
 // String implements the [fmt.Stringer] interface for an [Archive], allowing
@@ -179,8 +193,6 @@ func (a *Archive) String() string {
 		return ""
 	}
 
-	a.init()
-
 	s := &strings.Builder{}
 
 	if a.comment != "" {
@@ -188,16 +200,16 @@ func (a *Archive) String() string {
 		s.WriteString("\n")
 
 		// If there are files after the comment we need an extra newline after the comment
-		if a.files.Size() != 0 {
+		if len(a.files) != 0 {
 			s.WriteByte('\n')
 		}
 	}
 
-	for name, file := range a.files.All() {
+	for _, file := range a.files {
 		s.WriteString("-- ")
-		s.WriteString(name)
+		s.WriteString(file.name)
 		s.WriteString(" --\n")
-		s.WriteString(file)
+		s.WriteString(file.contents)
 	}
 
 	return s.String()
@@ -211,23 +223,19 @@ func (a *Archive) Files() iter.Seq2[string, string] {
 	if a == nil {
 		return func(yield func(string, string) bool) {}
 	}
-	a.init()
 
-	return a.files.All()
-}
-
-// init ensures the underlying map is correctly initialised.
-func (a *Archive) init() {
-	if a.files == nil {
-		a.files = orderedmap.New[string, string]()
+	return func(yield func(string, string) bool) {
+		for _, file := range a.files {
+			if !yield(file.name, file.contents) {
+				return
+			}
+		}
 	}
 }
 
 // New returns a new [Archive], applying any number of initialisation options.
 func New(options ...Option) (*Archive, error) {
-	archive := &Archive{
-		files: orderedmap.New[string, string](),
-	}
+	archive := &Archive{}
 
 	// Bubble up all the errors at once rather than forcing callers
 	// to play whack-a-mole
@@ -267,9 +275,7 @@ func Parse(r io.Reader) (*Archive, error) {
 	// Stupid windows
 	data = bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n"))
 
-	archive := &Archive{
-		files: orderedmap.New[string, string](),
-	}
+	archive := &Archive{}
 
 	comment, name, data := findFileMarker(data)
 	if data == nil {
@@ -283,7 +289,10 @@ func Parse(r io.Reader) (*Archive, error) {
 
 		var contents []byte
 		contents, name, data = findFileMarker(data)
-		archive.files.Insert(fileName, fixNL(strings.TrimSpace(string(contents))))
+		archive.files = append(
+			archive.files,
+			file{name: fileName, contents: fixNL(strings.TrimSpace(string(contents)))},
+		)
 	}
 
 	return archive, nil
@@ -340,31 +349,17 @@ func Equal(a, b *Archive) bool {
 		return false
 	}
 
-	// Likewise the underlying maps, mirror maps.Equal
-	if (a.files == nil) && (b.files == nil) {
-		return true
-	}
-
-	// Must also bail if either are nil
-	if a.files == nil || b.files == nil {
-		return false
-	}
-
 	if a.comment != b.comment {
 		return false
 	}
 
-	if a.files.Size() != b.files.Size() {
+	if len(a.files) != len(b.files) {
 		return false
 	}
 
-	for file, aContents := range a.files.All() {
-		bContents, exists := b.files.Get(file)
-		if !exists {
-			return false
-		}
-
-		if aContents != bContents {
+	for i, aFile := range a.files {
+		bFile := b.files[i]
+		if aFile != bFile {
 			return false
 		}
 	}

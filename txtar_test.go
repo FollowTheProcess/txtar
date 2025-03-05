@@ -92,7 +92,7 @@ func TestWithFiles(t *testing.T) {
 
 			if err == nil {
 				for _, file := range tt.files {
-					test.True(t, archive.Has(file))
+					test.True(t, archive.Has(file), test.Context("Missing file %s", file))
 				}
 			}
 		})
@@ -257,15 +257,17 @@ func TestArchiveRead(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		archive, err := txtar.New(tt.options...)
-		test.Ok(t, err)
+		t.Run(tt.name, func(t *testing.T) {
+			archive, err := txtar.New(tt.options...)
+			test.Ok(t, err)
 
-		for name, want := range tt.files {
-			got, ok := archive.Read(name)
-			test.Equal(t, ok, tt.wantOk)
+			for name, want := range tt.files {
+				got, ok := archive.Read(name)
+				test.Equal(t, ok, tt.wantOk)
 
-			test.Equal(t, got, want)
-		}
+				test.Equal(t, got, want)
+			}
+		})
 	}
 }
 
