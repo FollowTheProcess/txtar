@@ -59,8 +59,9 @@ import (
 	"io"
 	"iter"
 	"os"
-	"slices"
 	"strings"
+
+	"github.com/FollowTheProcess/collections/orderedmap"
 )
 
 var (
@@ -77,8 +78,8 @@ var (
 // An Archive is not safe for concurrent access across multiple goroutines, the caller
 // is responsible for synchronising concurrent access.
 type Archive struct {
-	files   map[string]string // The files contained in the archive, map of name to contents
-	comment string            // The top level archive comment section
+	files   *orderedmap.Map[string, string] // The files contained in the archive, map of name to contents
+	comment string                          // The top level archive comment section
 }
 
 // Comment returns the top level archive comment.
@@ -97,9 +98,8 @@ func (a *Archive) Has(name string) bool {
 	}
 
 	name = strings.TrimSpace(name)
-	_, exists := a.files[name]
 
-	return exists
+	return a.files.Contains(name)
 }
 
 // Write writes a named file with contents to the archive.
@@ -117,7 +117,7 @@ func (a *Archive) Write(name, contents string) error {
 	name = strings.TrimSpace(name)
 	contents = strings.TrimSpace(contents)
 
-	a.files[name] = fixNL(contents)
+	a.files.Insert(name, fixNL(contents))
 
 	return nil
 }
@@ -131,7 +131,7 @@ func (a *Archive) Read(name string) (string, error) {
 	}
 
 	name = strings.TrimSpace(name)
-	contents, exists := a.files[name]
+	contents, exists := a.files.Get(name)
 
 	if !exists {
 		return "", fmt.Errorf("file %s not contained in the archive", name)
@@ -149,7 +149,7 @@ func (a *Archive) Delete(name string) {
 	}
 
 	name = strings.TrimSpace(name)
-	delete(a.files, name)
+	a.files.Remove(name)
 }
 
 // Size returns the number of files stored in the archive.
@@ -158,7 +158,7 @@ func (a *Archive) Size() int {
 		return 0
 	}
 
-	return len(a.files)
+	return a.files.Size()
 }
 
 // String implements the [fmt.Stringer] interface for an [Archive], allowing
@@ -177,24 +177,16 @@ func (a *Archive) String() string {
 		s.WriteString("\n")
 
 		// If there are files after the comment we need an extra newline after the comment
-		if len(a.files) != 0 {
+		if a.files.Size() != 0 {
 			s.WriteByte('\n')
 		}
 	}
 
-	// Sort by filename so the output is deterministic
-	names := make([]string, 0, len(a.files))
-	for name := range a.files {
-		names = append(names, name)
-	}
-
-	slices.Sort(names)
-
-	for _, name := range names {
+	for name, file := range a.files.All() {
 		s.WriteString("-- ")
 		s.WriteString(name)
 		s.WriteString(" --\n")
-		s.WriteString(a.files[name])
+		s.WriteString(file)
 	}
 
 	return s.String()
@@ -205,23 +197,16 @@ func (a *Archive) String() string {
 // The order of iteration is non-deterministic, if order is required the caller
 // must collect and sort the results.
 func (a *Archive) Files() iter.Seq2[string, string] {
-	return func(yield func(string, string) bool) {
-		if a == nil {
-			return
-		}
-
-		for file, contents := range a.files {
-			if !yield(file, contents) {
-				return
-			}
-		}
+	if a == nil {
+		return func(yield func(string, string) bool) {}
 	}
+	return a.files.All()
 }
 
 // New returns a new [Archive], applying any number of initialisation options.
 func New(options ...Option) (*Archive, error) {
 	archive := &Archive{
-		files: make(map[string]string),
+		files: orderedmap.New[string, string](),
 	}
 
 	// Bubble up all the errors at once rather than forcing callers
@@ -263,7 +248,7 @@ func Parse(r io.Reader) (*Archive, error) {
 	data = bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n"))
 
 	archive := &Archive{
-		files: make(map[string]string),
+		files: orderedmap.New[string, string](),
 	}
 
 	comment, name, data := findFileMarker(data)
@@ -278,7 +263,7 @@ func Parse(r io.Reader) (*Archive, error) {
 
 		var contents []byte
 		contents, name, data = findFileMarker(data)
-		archive.files[fileName] = fixNL(strings.TrimSpace(string(contents)))
+		archive.files.Insert(fileName, fixNL(strings.TrimSpace(string(contents))))
 	}
 
 	return archive, nil
@@ -335,16 +320,26 @@ func Equal(a, b *Archive) bool {
 		return false
 	}
 
+	// Likewise the underlying maps, mirror maps.Equal
+	if (a.files == nil) && (b.files == nil) {
+		return true
+	}
+
+	// Must also bail if either are nil
+	if a.files == nil || b.files == nil {
+		return false
+	}
+
 	if a.comment != b.comment {
 		return false
 	}
 
-	if len(a.files) != len(b.files) {
+	if a.files.Size() != b.files.Size() {
 		return false
 	}
 
-	for file, aContents := range a.files {
-		bContents, exists := b.files[file]
+	for file, aContents := range a.files.All() {
+		bContents, exists := b.files.Get(file)
 		if !exists {
 			return false
 		}

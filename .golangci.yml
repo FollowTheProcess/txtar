@@ -139,3 +139,9 @@ linters-settings:
           - fmt\.(Fp|P)rint(ln|f)?
           - strings.Builder.Write(String|Byte)?
           - bytes.Buffer.Write(String|Byte)?
+
+      - name: unused-parameter
+        disabled: true # gopls is better
+
+      - name: unused-receiver
+        disabled: true # gopls is better
