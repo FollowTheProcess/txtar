@@ -349,10 +349,10 @@ lines
 file1 contents
 -- bfile.txt --
 file2 contents
--- cfile.txt --
-file4 contents
 -- dir/file3.txt --
 dir/file3 contents
+-- cfile.txt --
+file4 contents
 -- file.txt --
 file contents
 `,
@@ -364,7 +364,7 @@ file contents
 			archive, err := txtar.New(tt.options...)
 			test.Ok(t, err)
 
-			test.Equal(t, archive.String(), tt.want)
+			test.Diff(t, archive.String(), tt.want)
 		})
 	}
 }
