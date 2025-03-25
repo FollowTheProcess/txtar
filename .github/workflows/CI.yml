@@ -15,6 +15,6 @@ permissions: {}
 jobs:
   ci:
     name: CI
-    uses: FollowTheProcess/ci/.github/workflows/Go.yml@v1
+    uses: FollowTheProcess/ci/.github/workflows/Go.yml@v2
     permissions:
       contents: read
