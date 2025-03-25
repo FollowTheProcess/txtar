@@ -403,7 +403,7 @@ func isMarker(data []byte) (name string, after []byte) {
 		data, after = data[:i], data[i+1:]
 	}
 
-	if !(bytes.HasSuffix(data, markerEnd) && len(data) >= len(marker)+len(markerEnd)) {
+	if !bytes.HasSuffix(data, markerEnd) || len(data) < len(marker)+len(markerEnd) {
 		return "", nil
 	}
 
