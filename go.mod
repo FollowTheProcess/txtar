@@ -3,7 +3,7 @@ module github.com/FollowTheProcess/txtar
 go 1.24
 
 require (
-	github.com/FollowTheProcess/test v0.21.0
+	github.com/FollowTheProcess/test v0.22.0
 	golang.org/x/tools v0.34.0
 )
 
