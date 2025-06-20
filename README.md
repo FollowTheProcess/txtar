@@ -1,6 +1,7 @@
 # txtar
 
 [![License](https://img.shields.io/github/license/FollowTheProcess/txtar)](https://github.com/FollowTheProcess/txtar)
+[![Go Reference](https://pkg.go.dev/badge/go.followtheprocess.codes/txtar.svg)](https://pkg.go.dev/go.followtheprocess.codes/txtar)
 [![Go Report Card](https://goreportcard.com/badge/github.com/FollowTheProcess/txtar)](https://goreportcard.com/report/github.com/FollowTheProcess/txtar)
 [![GitHub](https://img.shields.io/github/v/release/FollowTheProcess/txtar?logo=github&sort=semver)](https://github.com/FollowTheProcess/txtar)
 [![CI](https://github.com/FollowTheProcess/txtar/workflows/CI/badge.svg)](https://github.com/FollowTheProcess/txtar/actions?query=workflow%3ACI)
@@ -24,6 +25,12 @@ Improvements include:
 - Parse accepts an `io.Reader` rather than a `[]byte` for greater flexibility
 - Dump is provided to serialise an archive to an `io.Writer`
 
+## Installation
+
+```shell
+go get go.followtheprocess.codes/txtar@latest
+```
+
 ## Quickstart
 
 ```go
@@ -34,7 +41,7 @@ import (
     "log"
     "os"
 
-    "github.com/FollowTheProcess/txtar"
+    "go.followtheprocess.codes/txtar"
 )
 
 func main() {

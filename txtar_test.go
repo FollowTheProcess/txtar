@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/FollowTheProcess/test"
-	"github.com/FollowTheProcess/txtar"
+	"go.followtheprocess.codes/test"
+	"go.followtheprocess.codes/txtar"
 	gotxtar "golang.org/x/tools/txtar"
 )
 
