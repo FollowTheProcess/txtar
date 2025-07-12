@@ -152,7 +152,7 @@ func TestArchiveNilSafe(t *testing.T) {
 	test.Equal(t, archive.Size(), 0)
 	test.Equal(t, archive.String(), "")
 	archive.Delete("file")
-	maps.Collect(archive.Files())
+	_ = maps.Collect(archive.Files())
 }
 
 func TestArchiveWriteDuplicate(t *testing.T) {
