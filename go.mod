@@ -1,6 +1,6 @@
 module go.followtheprocess.codes/txtar
 
-go 1.25.0
+go 1.26
 
 require (
 	go.followtheprocess.codes/test v1.1.0
