@@ -3,12 +3,13 @@ module go.followtheprocess.codes/txtar
 go 1.26
 
 require (
-	go.followtheprocess.codes/test v1.1.0
+	go.followtheprocess.codes/test v1.2.0
 	golang.org/x/tools v0.44.0
 )
 
 require (
-	go.followtheprocess.codes/hue v1.0.0 // indirect
+	go.followtheprocess.codes/diff v0.1.1 // indirect
+	go.followtheprocess.codes/hue v1.1.0 // indirect
 	golang.org/x/sys v0.43.0 // indirect
-	golang.org/x/term v0.37.0 // indirect
+	golang.org/x/term v0.42.0 // indirect
 )
