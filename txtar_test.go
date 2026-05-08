@@ -284,14 +284,14 @@ func TestArchiveDelete(t *testing.T) {
 		archive, err := txtar.New()
 		test.Ok(t, err)
 
-		test.False(t, archive.Has("present")) // File "present" should not yet be present
+		test.False(t, archive.Has("present"), test.Context("File 'present' should not yet be present"))
 
 		err = archive.Write("present", "present stuff")
 		test.Ok(t, err)
 
-		test.True(t, archive.Has("present")) // File "present" should exist
+		test.True(t, archive.Has("present"), test.Context("File 'present' should exist"))
 		archive.Delete("present")
-		test.False(t, archive.Has("present")) // File "present" should have been deleted
+		test.False(t, archive.Has("present"), test.Context("File 'present' should have been deleted"))
 	})
 }
 
@@ -484,7 +484,7 @@ func TestEqual(t *testing.T) {
 			that, err := txtar.New(tt.thatOptions...)
 			test.Ok(t, err)
 
-			test.Equal(t, txtar.Equal(this, that), tt.want) // Equal did not return as expected
+			test.Equal(t, txtar.Equal(this, that), tt.want, test.Context("Equal did not return as expected"))
 		})
 	}
 }
@@ -580,9 +580,9 @@ func TestParseValid(t *testing.T) {
 			defer file.Close()
 
 			archive, err := txtar.Parse(file)
-			test.Ok(t, err) // Parse returned an unexpected error
+			test.Ok(t, err, test.Context("Parse returned an unexpected error"))
 
-			test.Equal(t, archive.Comment(), tt.comment) // Comment did not match expected
+			test.Equal(t, archive.Comment(), tt.comment, test.Context("Comment did not match expected"))
 
 			for file, contents := range tt.files {
 				test.True(t, archive.Has(file), test.Context("Archive was missing %s", file))
@@ -643,9 +643,9 @@ func TestParseFileValid(t *testing.T) {
 			path := filepath.Join("testdata", "TestParse", "valid", tt.name)
 
 			archive, err := txtar.ParseFile(path)
-			test.Ok(t, err) // Parse returned an unexpected error
+			test.Ok(t, err, test.Context("Parse returned an unexpected error"))
 
-			test.Equal(t, archive.Comment(), tt.comment) // Comment did not match expected
+			test.Equal(t, archive.Comment(), tt.comment, test.Context("Comment did not match expected"))
 
 			for file, contents := range tt.files {
 				test.True(t, archive.Has(file), test.Context("Archive was missing %s", file))
@@ -662,17 +662,17 @@ func TestParseFileValid(t *testing.T) {
 func TestParseInvalid(t *testing.T) {
 	pattern := filepath.Join("testdata", "TestParse", "invalid", "*.txtar")
 	files, err := filepath.Glob(pattern)
-	test.Ok(t, err) // Could not glob the invalid directory
+	test.Ok(t, err, test.Context("Could not glob the invalid directory"))
 
 	for _, file := range files {
 		t.Run(filepath.Base(file), func(t *testing.T) {
 			f, err := os.Open(file)
-			test.Ok(t, err) // Could not read invalid test case file
+			test.Ok(t, err, test.Context("Could not read invalid test case file"))
 			defer f.Close()
 
 			archive, err := txtar.Parse(f)
-			test.Err(t, err)            // Parse of invalid file did not return an error
-			test.Equal(t, archive, nil) // Archive was not nil
+			test.Err(t, err, test.Context("Parse of invalid file did not return an error"))
+			test.Equal(t, archive, nil, test.Context("Archive was not nil"))
 		})
 	}
 }
@@ -680,7 +680,7 @@ func TestParseInvalid(t *testing.T) {
 func TestParseStringRoundTrip(t *testing.T) {
 	pattern := filepath.Join("testdata", "TestParse", "valid", "*.txtar")
 	files, err := filepath.Glob(pattern)
-	test.Ok(t, err) // Could not glob the valid directory
+	test.Ok(t, err, test.Context("Could not glob the valid directory"))
 
 	for _, file := range files {
 		t.Run(filepath.Base(file), func(t *testing.T) {
@@ -689,22 +689,33 @@ func TestParseStringRoundTrip(t *testing.T) {
 			defer f.Close()
 
 			before, err := txtar.Parse(f)
-			test.Ok(t, err) // Could not parse file
+			test.Ok(t, err, test.Context("Could not parse file"))
 
 			// Stringify it
 			stringified := before.String()
 
 			// Reparse it, should be no errors and result in the exact same archive
 			after, err := txtar.Parse(strings.NewReader(stringified))
-			test.Ok(t, err) // Could not reparse stringified file
+			test.Ok(t, err, test.Context("Could not reparse stringified file"))
 
-			test.Equal(t, before.Comment(), after.Comment()) // Comment mismatch before vs after
+			test.Equal(
+				t,
+				before.Comment(),
+				after.Comment(),
+				test.Context("Comment mismatch before vs after"),
+			)
 			test.Equal(
 				t,
 				before.Size(),
 				after.Size(),
-			) // Number of files mismatch before vs after
-			test.Equal(t, before.String(), after.String()) // String() mismatch before vs after
+				test.Context("Number of files mismatch before vs after"),
+			)
+			test.Equal(
+				t,
+				before.String(),
+				after.String(),
+				test.Context("String() mismatch before vs after"),
+			)
 		})
 	}
 }
@@ -730,7 +741,7 @@ func TestFiles(t *testing.T) {
 func TestCompat(t *testing.T) {
 	pattern := filepath.Join("testdata", "TestCompat", "*.txtar")
 	files, err := filepath.Glob(pattern)
-	test.Ok(t, err) // Could not glob the TestCompat directory
+	test.Ok(t, err, test.Context("Could not glob the TestCompat directory"))
 
 	for _, file := range files {
 		t.Run(filepath.Base(file), func(t *testing.T) {
@@ -745,22 +756,33 @@ func TestCompat(t *testing.T) {
 			goArchive := gotxtar.Parse(contents)
 
 			ourArchive, err := txtar.Parse(bytes.NewReader(contents))
-			test.Ok(t, err) // our txtar could not parse file
+			test.Ok(t, err, test.Context("our txtar could not parse file"))
 
-			test.Equal( // Comment mismatch between x/tools/txtar and this package
+			test.Equal(
 				t,
 				clean(string(goArchive.Comment)),
 				strings.TrimSpace(ourArchive.Comment()),
+				test.Context("Comment mismatch between x/tools/txtar and this package"),
 			)
 
-			test.Equal(t, len(goArchive.Files), ourArchive.Size()) // Mismatch in number of files
+			test.Equal(
+				t,
+				len(goArchive.Files),
+				ourArchive.Size(),
+				test.Context("Mismatch in number of files"),
+			)
 
 			for _, file := range goArchive.Files {
-				test.True(t, ourArchive.Has(file.Name)) // This package archive missing file
+				test.True(t, ourArchive.Has(file.Name), test.Context("This package archive missing file"))
 				ourData, ok := ourArchive.Read(file.Name)
-				test.True(t, ok) // Could not read data
+				test.True(t, ok, test.Context("Could not read data"))
 
-				test.Equal(t, clean(ourData), clean(string(file.Data))) // File data mismatch
+				test.Equal(
+					t,
+					clean(ourData),
+					clean(string(file.Data)),
+					test.Context("File data mismatch"),
+				)
 			}
 		})
 	}
