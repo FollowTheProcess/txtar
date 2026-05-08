@@ -17,11 +17,11 @@ No modifications are made to the txtar syntax, all txtar archives produced with 
 
 Improvements include:
 
-- Files stored in the archive may may be looked up by name and operated on individually
+- Files stored in the archive may be looked up by name and operated on individually
 - Methods and functions are provided to help easily facilitate individual file editing
 - An ergonomic API for constructing an archive, rather than simply exposing struct fields
 - File names and contents are stored with all leading and trailing whitespace trimmed so that formatting the archive is easier and more consistent
-- Parsing an archive from it's serialised format *can* error in the presence of a malformed document
+- Parsing an archive from its serialised format *can* error in the presence of a malformed document
 - Parse accepts an `io.Reader` rather than a `[]byte` for greater flexibility
 - Dump is provided to serialise an archive to an `io.Writer`
 
@@ -58,8 +58,8 @@ func main() {
 
     // Do things with the archive
     fmt.Println(archive.Comment())
-    for file, contents := range archive.Files() {
-        fmt.Printf("file: %s\ncontents: %s\n", string(contents))
+    for name, contents := range archive.Files() {
+        fmt.Printf("file: %s\ncontents: %s\n", name, contents)
     }
 }
 ```

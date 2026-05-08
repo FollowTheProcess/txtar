@@ -10,11 +10,11 @@
 //
 // Improvements include:
 //
-//   - Files stored in the archive may may be looked up by name and operated on individually
+//   - Files stored in the archive may be looked up by name and operated on individually
 //   - Methods and functions are provided to help easily facilitate individual file editing
 //   - An ergonomic API for constructing an [Archive], rather than simply exposing struct fields
 //   - File names and contents are stored with all leading and trailing whitespace trimmed so that formatting the archive is easier and more consistent
-//   - Parsing an [Archive] from it's serialised format *can* error in the presence of a malformed document
+//   - Parsing an [Archive] from its serialised format *can* error in the presence of a malformed document
 //   - [Parse] accepts an [io.Reader] rather than a []byte
 //   - [Dump] is provided to serialise an [Archive] to an [io.Writer]
 //   - File contents are represented as strings, not []byte for a more convenient format
@@ -71,7 +71,7 @@ var (
 // A file represents a txtar archive file.
 type file struct {
 	name     string // Name of the file in the archive
-	contents string // It's contents
+	contents string // Its contents
 }
 
 // Archive is a collection of files.
@@ -168,10 +168,6 @@ func (a *Archive) Delete(name string) {
 	}
 
 	name = strings.TrimSpace(name)
-	if !a.Has(name) {
-		return
-	}
-
 	a.files = slices.DeleteFunc(a.files, func(f file) bool { return f.name == name })
 }
 
@@ -187,7 +183,7 @@ func (a *Archive) Size() int {
 // String implements the [fmt.Stringer] interface for an [Archive], allowing
 // it to print itself.
 //
-// The files will be printed sorted by filename.
+// Files are printed in the order they were added to the archive.
 func (a *Archive) String() string {
 	if a == nil {
 		return ""
@@ -215,10 +211,9 @@ func (a *Archive) String() string {
 	return s.String()
 }
 
-// Files returns a iterator over the archive's filenames and contents.
+// Files returns an iterator over the archive's filenames and contents.
 //
-// The order of iteration is non-deterministic, if order is required the caller
-// must collect and sort the results.
+// Files are yielded in the order they were added to the archive.
 func (a *Archive) Files() iter.Seq2[string, string] {
 	if a == nil {
 		return func(yield func(string, string) bool) {}
@@ -251,7 +246,7 @@ func New(options ...Option) (*Archive, error) {
 	return archive, nil
 }
 
-// Parse constructs an [Archive] from it's serialised representation in text.
+// Parse constructs an [Archive] from its serialised representation in text.
 //
 // Unlike the original txtar package, Parse can (and will) return an error in
 // the presence of a malformed document. We also take an [io.Reader] rather than
@@ -310,7 +305,7 @@ func ParseFile(name string) (*Archive, error) {
 	return Parse(file)
 }
 
-// Dump writes the [Archive] to w in it's serialised representation.
+// Dump writes the [Archive] to w in its serialised representation.
 func Dump(w io.Writer, archive *Archive) error {
 	if archive == nil {
 		return errors.New("Dump: archive was nil")
@@ -353,18 +348,7 @@ func Equal(a, b *Archive) bool {
 		return false
 	}
 
-	if len(a.files) != len(b.files) {
-		return false
-	}
-
-	for i, aFile := range a.files {
-		bFile := b.files[i]
-		if aFile != bFile {
-			return false
-		}
-	}
-
-	return true
+	return slices.Equal(a.files, b.files)
 }
 
 // Below is verbatim the parser from the original package, the only exception being we don't need fixNL
