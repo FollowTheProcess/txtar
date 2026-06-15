@@ -668,6 +668,7 @@ func TestParseInvalid(t *testing.T) {
 		t.Run(filepath.Base(file), func(t *testing.T) {
 			f, err := os.Open(file)
 			test.Ok(t, err, test.Context("Could not read invalid test case file"))
+
 			defer f.Close()
 
 			archive, err := txtar.Parse(f)
@@ -686,6 +687,7 @@ func TestParseStringRoundTrip(t *testing.T) {
 		t.Run(filepath.Base(file), func(t *testing.T) {
 			f, err := os.Open(file)
 			test.Ok(t, err)
+
 			defer f.Close()
 
 			before, err := txtar.Parse(f)

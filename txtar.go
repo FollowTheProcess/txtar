@@ -62,6 +62,7 @@ import (
 	"strings"
 )
 
+//nolint:gochecknoglobals // Effectively constants
 var (
 	newlineMarker = []byte("\n-- ")
 	marker        = []byte("-- ")
@@ -131,6 +132,7 @@ func (a *Archive) Write(name, contents string) error {
 	for i := range a.files {
 		if a.files[i].name == name {
 			a.files[i] = file{name: name, contents: fixNL(contents)}
+
 			return nil
 		}
 	}
@@ -283,6 +285,7 @@ func Parse(r io.Reader) (*Archive, error) {
 		fileName := name // Copy of the "before" filename
 
 		var contents []byte
+
 		contents, name, data = findFileMarker(data)
 		archive.files = append(
 			archive.files,
@@ -322,6 +325,7 @@ func Dump(w io.Writer, archive *Archive) error {
 // If the file does not exist, it is created.
 func DumpFile(name string, archive *Archive) error {
 	const filePerms = 0o644
+
 	return os.WriteFile(name, []byte(archive.String()), filePerms)
 }
 
@@ -400,6 +404,7 @@ func fixNL(data string) string {
 	if len(data) == 0 || data[len(data)-1] == '\n' {
 		return data
 	}
+
 	d := make([]byte, len(data)+1)
 	copy(d, data)
 	d[len(data)] = '\n'
