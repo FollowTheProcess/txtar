@@ -50,7 +50,7 @@
 // There are no possible syntax errors in a txtar archive.
 //
 // [golang.org/x/tools/txtar]: https://pkg.go.dev/golang.org/x/tools/txtar
-package txtar // import "go.followtheprocess.codes/txtar"
+package txtar
 
 import (
 	"bytes"
